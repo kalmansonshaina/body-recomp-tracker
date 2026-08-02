@@ -96,7 +96,9 @@ export function Dashboard({ go }) {
   const rot = weekRotation(S);
   const b = sc.bundle;
   const d = S.daily[today()] || {};
-  const doneToday = S.sessions.some((s) => s.date === today());
+  const todaySessions = S.sessions.filter((s) => s.date === today());
+  const doneToday = todaySessions.length > 0;
+  const todayNames = [...new Set(todaySessions.map((s) => s.name))].join(', ');
   const pyToday = S.activities.some((a) => a.date === today() && (ACTIVITY_TYPES.find((t) => t.id === a.type) || {}).counts);
   const w = weighIns(S);
   const t = trendSummary(S);
@@ -118,7 +120,7 @@ export function Dashboard({ go }) {
         <div className="breakdown">
           {sc.parts.map((p) => (
             <div key={p.key} className="bd-item"><span className="em">{p.icon}</span>
-              <div className="bd-main"><div className="t">{p.key} <span className="muted small" style={{ fontWeight: 600 }}>· {p.detail}</span></div><Bar pct={p.got / p.max} /></div>
+              <div className="bd-main"><div className="t">{p.key}</div><div className="bd-sub">{p.detail}</div><Bar pct={p.got / p.max} /></div>
             </div>
           ))}
         </div>
@@ -126,8 +128,15 @@ export function Dashboard({ go }) {
       </Reveal>
 
       <Reveal delay={0.1} className="card">
-        <div className="card-title"><h2>Next workout</h2><Pill tone="accent">{rot.count}/{S.profile.strengthTarget} this week</Pill></div>
+        <div className="card-title"><h2>{doneToday ? 'Strength' : 'Next workout'}</h2><Pill tone="accent">{rot.count}/{S.profile.strengthTarget} this week</Pill></div>
+        {doneToday && (
+          <button className="done-today" onClick={() => go('gym')}>
+            <span className="dt-check"><Icon name="check" /></span>
+            <span className="dt-main"><b>Today’s strength done</b><span>{todayNames} · tap to view or edit</span></span>
+          </button>
+        )}
         {rot.next ? (<>
+          {doneToday && <div className="small muted" style={{ margin: '2px 2px 8px', fontWeight: 700 }}>Next in your rotation</div>}
           <div className="metric">
             <div style={{ width: 46, height: 46, borderRadius: 13, display: 'grid', placeItems: 'center', background: 'var(--accent-soft)', color: 'var(--accent-ink)' }}><Icon name="dumbbell" /></div>
             <div className="lbl" style={{ marginLeft: 12 }}><div className="t" style={{ fontSize: 17 }}>{rot.next.name}</div><div className="s">{rot.next.tag} · {rot.next.items.length} exercises</div></div>
@@ -135,7 +144,7 @@ export function Dashboard({ go }) {
           <div className="spacer" />
           <StartButton go={go} id={rot.next.id} label={`Start ${rot.next.name}`} />
         </>) : (<>
-          <div className="hint">You&apos;ve completed the full rotation. Extra sessions are welcome, or rest — it resets Monday.</div>
+          <div className="hint">{doneToday ? 'That completes your full rotation for the week. ' : ''}Extra sessions are welcome, or rest — it resets Monday.</div>
           <div className="spacer" /><button className="btn" onClick={() => go('gym')}>Log an extra workout</button>
         </>)}
       </Reveal>

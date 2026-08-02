@@ -137,13 +137,20 @@ select{-webkit-appearance:none;appearance:none;background-image:url("data:image/
 .orb .score span{display:block;font-size:12.5px;font-weight:700;letter-spacing:.04em;opacity:.92;margin-top:6px;text-transform:uppercase}
 
 .breakdown{display:grid;grid-template-columns:1fr 1fr;gap:11px 16px}
-.bd-item{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:600}
-.bd-item .em{font-size:15px}
+.bd-item{display:flex;align-items:flex-start;gap:9px;font-size:13px;font-weight:600;min-width:0}
+.bd-item .em{font-size:15px;line-height:1.2}
 .bd-item .bd-main{flex:1;min-width:0}
-.bd-item .bd-main .t{font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bd-item .bd-main .t{font-size:12.5px;color:var(--ink);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bd-item .bd-main .bd-sub{font-size:11px;color:var(--muted);font-weight:600;line-height:1.25;margin:1px 0 2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bd-item .bd-bar{height:6px;border-radius:99px;background:var(--surface-2);overflow:hidden;margin-top:4px}
 .bd-item .bd-bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent),var(--accent-2))}
 .bd-item .pts{font-weight:800;font-size:12.5px;white-space:nowrap}
+
+.done-today{display:flex;align-items:center;gap:11px;width:100%;text-align:left;background:var(--sage-soft);border:1px solid var(--sage-line,rgba(90,155,120,.25));border-radius:14px;padding:11px 13px;margin-bottom:12px;cursor:pointer}
+.done-today .dt-check{flex:none;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:var(--sage);color:#fff}
+.done-today .dt-main{display:flex;flex-direction:column;min-width:0}
+.done-today .dt-main b{font-size:14px;color:var(--sage-ink,var(--ink));font-weight:800;line-height:1.2}
+.done-today .dt-main span{font-size:11.5px;color:var(--muted);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 .tiles{display:grid;grid-template-columns:1fr 1fr;gap:11px}
 .tile{position:relative;overflow:hidden;background:var(--card-solid);border:1px solid var(--line);border-radius:var(--radius-sm);padding:15px 16px}
