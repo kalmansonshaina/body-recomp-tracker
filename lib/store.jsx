@@ -33,10 +33,33 @@ export function StoreProvider({ children }) {
     setS(load());
     setPhotos(loadJSON(PKEY, []));
     setActiveState(loadJSON(AKEY, null));
+    // ask the browser not to evict our data (helps installed PWAs keep data)
+    try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch {}
   }, []);
 
   useEffect(() => { if (S) { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch { toast('Storage full — export a backup'); } } }, [S]); // eslint-disable-line
   useEffect(() => { if (ready) { try { localStorage.setItem(AKEY, JSON.stringify(active)); } catch {} } }, [active, ready]);
+
+  // Flush the latest state the instant the app backgrounds. iOS suspends/kills
+  // home-screen PWAs when you switch away, so this guarantees the current
+  // workout (and everything else) is written before that happens.
+  useEffect(() => {
+    const flush = () => {
+      try {
+        if (S) localStorage.setItem(KEY, JSON.stringify(S));
+        localStorage.setItem(AKEY, JSON.stringify(active));
+      } catch {}
+    };
+    const onVis = () => { if (document.visibilityState === 'hidden') flush(); };
+    window.addEventListener('pagehide', flush);
+    window.addEventListener('beforeunload', flush);
+    document.addEventListener('visibilitychange', onVis);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      window.removeEventListener('beforeunload', flush);
+      document.removeEventListener('visibilitychange', onVis);
+    };
+  }, [S, active]);
 
   const toast = useCallback((m) => {
     setToastMsg(m); clearTimeout(toastTimer.current);
