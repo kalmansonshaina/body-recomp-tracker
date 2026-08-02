@@ -28,6 +28,8 @@ const P = {
   clip: '<rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h4"/>',
   bolt: '<path d="M13 3L5 13h6l-1 8 8-11h-6z"/>',
   edit: '<path d="M4 20h4L18 10l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
+  trend: '<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>',
+  arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>',
 };
 export function Icon({ name }) {
   return <svg viewBox="0 0 24 24" dangerouslySetInnerHTML={{ __html: P[name] || '' }} />;

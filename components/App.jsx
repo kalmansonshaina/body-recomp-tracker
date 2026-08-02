@@ -3,16 +3,17 @@ import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { StoreProvider, useStore } from '@/lib/store';
 import { Icon, cx } from './ui';
-import { Home, Workout, Log, Progress, More } from './screens';
+import { Home, Dashboard, Workout, Log, Progress, More } from './screens';
 
 const TABS = [
   { id: 'home', label: 'Home', icon: 'home' },
-  { id: 'workout', label: 'Workout', icon: 'dumbbell' },
-  { id: 'log', label: 'Log', icon: 'log' },
-  { id: 'progress', label: 'Progress', icon: 'chart' },
+  { id: 'dashboard', label: 'Dashboard', icon: 'chart' },
+  { id: 'gym', label: 'Gym', icon: 'dumbbell' },
+  { id: 'movement', label: 'Movement', icon: 'yoga' },
+  { id: 'progress', label: 'Progress', icon: 'trend' },
   { id: 'more', label: 'More', icon: 'more' },
 ];
-const SCREENS = { home: Home, workout: Workout, log: Log, progress: Progress, more: More };
+const SCREENS = { home: Home, dashboard: Dashboard, gym: Workout, movement: Log, progress: Progress, more: More };
 
 function SheetHost() {
   const { sheet, closeSheet } = useStore();
@@ -59,9 +60,10 @@ function Shell() {
   if (!ready) return null;
   const Screen = SCREENS[tab];
 
+  const atHome = tab === 'home';
   return (
     <>
-      <div id="app">
+      <div id="app" className={atHome ? 'at-home' : ''}>
         <AnimatePresence mode="wait">
           <motion.div key={tab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}>
@@ -69,14 +71,16 @@ function Shell() {
           </motion.div>
         </AnimatePresence>
       </div>
-      <nav className="tabbar">
-        {TABS.map((t) => (
-          <button key={t.id} className={cx('tab', tab === t.id && 'active')} onClick={() => setTab(t.id)}>
-            <motion.span whileTap={{ scale: 0.8 }} style={{ display: 'grid', placeItems: 'center' }}><Icon name={t.icon} /></motion.span>
-            <span>{t.label}</span>
-          </button>
-        ))}
-      </nav>
+      {!atHome && (
+        <nav className="tabbar">
+          {TABS.map((t) => (
+            <button key={t.id} className={cx('tab', tab === t.id && 'active')} onClick={() => setTab(t.id)}>
+              <motion.span whileTap={{ scale: 0.8 }} style={{ display: 'grid', placeItems: 'center' }}><Icon name={t.icon} /></motion.span>
+              <span>{t.label}</span>
+            </button>
+          ))}
+        </nav>
+      )}
       <SheetHost />
       <Toast />
     </>

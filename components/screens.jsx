@@ -41,6 +41,53 @@ function InstallHint() {
 }
 
 export function Home({ go }) {
+  const { S, active, setActive } = useStore();
+  const rot = weekRotation(S);
+  const sc = recompScore(S);
+  const first = S.profile.name ? S.profile.name.split(' ')[0].toLowerCase() : null;
+  const startNext = () => {
+    const id = rot.next?.id;
+    if (!id) { go('gym'); return; }
+    if (!active || active.type !== id) setActive(makeActive(S, id));
+    go('gym');
+  };
+  const leadDesc = rot.next ? `${rot.next.name.toLowerCase()} — ${rot.next.tag.toLowerCase()}` : 'rotation complete — extra session';
+  const leadMeta = rot.next ? `${rot.next.items.length} exercises · warm-up included` : `recomp score ${sc.total}/100 this week`;
+  const cats = [
+    { id: 'dashboard', label: 'dashboard' },
+    { id: 'movement', label: 'movement' },
+    { id: 'progress', label: 'progress' },
+    { id: 'more', label: 'more' },
+  ];
+  return (
+    <div className="hero">
+      <div className="hero-orb"><motion.div className="hero-orb-in" animate={{ scale: [0.97, 1.05, 0.97] }} transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }} /></div>
+      <div className="hero-head">for you<span>{first ? ` · hi ${first}` : ' · today'}</span></div>
+      <div className="hero-body">
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.2, 0.8, 0.2, 1] }}>
+          <span className="hero-kicker">recomp score {sc.total}/100</span>
+          <button className="hero-word lead" onClick={() => go('gym')}>gym</button>
+          <div className="hero-desc">{leadDesc}</div>
+          <div className="hero-meta">{leadMeta}</div>
+        </motion.div>
+        <div className="hero-cats">
+          {cats.map((c, i) => (
+            <motion.button key={c.id} className="hero-word" onClick={() => go(c.id)}
+              initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.12 + i * 0.06, duration: 0.4 }}>
+              {c.label}
+            </motion.button>
+          ))}
+        </div>
+      </div>
+      <div className="hero-foot">
+        <button className="hero-dots" onClick={() => go('more')}>…</button>
+        <motion.button whileTap={{ scale: 0.96 }} className="hero-start" onClick={startNext}>start <span className="arw"><Icon name="arrow" /></span></motion.button>
+      </div>
+    </div>
+  );
+}
+
+export function Dashboard({ go }) {
   const { S, openSheet } = useStore();
   const sc = recompScore(S);
   const status = weekStatus(S, sc.bundle);
@@ -55,7 +102,7 @@ export function Home({ go }) {
   const suppToday = (() => { const log = S.suppLog[today()] || {}; const a = S.supplements.filter((x) => x.active); return { taken: a.filter((x) => log[x.id]).length, total: a.length }; })();
 
   return (<>
-    <AppBar title={`Hi${S.profile.name ? ', ' + S.profile.name.split(' ')[0] : ''}`} sub="Consistency over perfection" right={fmtDay(today())} />
+    <AppBar title="Dashboard" sub={`Hi${S.profile.name ? ', ' + S.profile.name.split(' ')[0] : ''} · consistency over perfection`} right={fmtDay(today())} />
     <main className="screen">
       <InstallHint />
       <div className="orb-wrap">
@@ -174,7 +221,7 @@ function addExerciseToActive(S, setActive, key) {
 export function Workout({ go }) {
   const { S, active } = useStore();
   return (<>
-    <AppBar title={active ? active.name : 'Workout'} sub={active ? 'Log your sets' : 'Pick a session'} right={fmtDay(today())} />
+    <AppBar title={active ? active.name : 'Gym'} sub={active ? 'Log your sets' : 'Pick a session'} right={fmtDay(today())} />
     <main className="screen">{active ? <ActiveWorkout go={go} /> : <Picker go={go} />}</main>
   </>);
 }
@@ -351,7 +398,7 @@ export function Log({ go }) {
   const clearAll = () => update((s) => { s.suppLog[today()] = {}; });
 
   return (<>
-    <AppBar title="Log" sub="One-minute daily entry" right={fmtDay(today())} />
+    <AppBar title="Movement" sub="Pilates · cardio · steps · supplements" right={fmtDay(today())} />
     <main className="screen">
       <Reveal className="card">
         <div className="card-title"><h2>Today&apos;s checklist</h2><span className="muted small">{fmtShort(today())}</span></div>
