@@ -58,7 +58,7 @@ function Shell() {
   }, []);
 
   if (!ready) return null;
-  const Screen = SCREENS[tab];
+  const Screen = SCREENS[tab] || SCREENS.home;
 
   const atHome = tab === 'home';
   return (

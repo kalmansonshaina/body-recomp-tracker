@@ -2,7 +2,7 @@
    Caches the app shell + Next.js assets as they're used, so once the app has
    been opened online it also works offline. Path-agnostic (works under any
    base path, e.g. GitHub Pages project subpath). */
-const CACHE = 'brt-next-v2';
+const CACHE = 'brt-next-v3';
 
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => {

@@ -131,7 +131,7 @@ export function Dashboard({ go }) {
           <StartButton go={go} id={rot.next.id} label={`Start ${rot.next.name}`} />
         </>) : (<>
           <div className="hint">You&apos;ve completed the full rotation. Extra sessions are welcome, or rest — it resets Monday.</div>
-          <div className="spacer" /><button className="btn" onClick={() => go('workout')}>Log an extra workout</button>
+          <div className="spacer" /><button className="btn" onClick={() => go('gym')}>Log an extra workout</button>
         </>)}
       </Reveal>
 
@@ -142,7 +142,7 @@ export function Dashboard({ go }) {
           <div className="tile g-sage"><div className="k"><Icon name="walk" /> Steps</div><div className="v">{d.steps ? (+d.steps).toLocaleString() : '—'}</div></div>
         </div>
         <div className="chips" style={{ marginTop: 12 }}>
-          <Tap className={cx('chip', doneToday && 'sage on')} onClick={() => go('workout')}>💪 Strength {doneToday && '✓'}</Tap>
+          <Tap className={cx('chip', doneToday && 'sage on')} onClick={() => go('gym')}>💪 Strength {doneToday && '✓'}</Tap>
           <Tap className={cx('chip', pyToday && 'sage on')} onClick={() => openSheet(<ActivitySheet />)}>🧘 Pilates/Yoga {pyToday && '✓'}</Tap>
           <Tap className="chip" onClick={() => openSheet(<CardioSheet mode="standalone" />)}>🏃 Cardio</Tap>
           <Tap className={cx('chip', d.ab && 'sage on')} onClick={() => openSheet(<AbsSheet />)}>🔥 Abs {d.ab && '✓'}</Tap>
@@ -188,7 +188,7 @@ function StartButton({ go, id, label }) {
   const doStart = () => {
     if (active && active.type !== id && !confirm('Discard your in-progress workout and start a new one?')) return;
     if (!active || active.type !== id) setActive(makeActive(S, id));
-    go('workout');
+    go('gym');
   };
   return <motion.button whileTap={{ scale: 0.97 }} className="btn primary block" onClick={doStart}><Icon name="plus" /> {label}</motion.button>;
 }
@@ -233,7 +233,7 @@ function Picker({ go }) {
   const start = (id) => {
     if (active && active.type !== id && !confirm('Discard your in-progress workout and start a new one?')) return;
     if (!active || active.type !== id) setActive(makeActive(S, id));
-    go('workout');
+    go('gym');
   };
   const edit = (e, id) => { e.stopPropagation(); openSheet(<EditWorkoutSheet workoutId={id} />); };
   const newWorkout = () => {
@@ -402,7 +402,7 @@ export function Log({ go }) {
     <main className="screen">
       <Reveal className="card">
         <div className="card-title"><h2>Today&apos;s checklist</h2><span className="muted small">{fmtShort(today())}</span></div>
-        <Item on={strengthToday} label="Strength workout" sub={strengthToday ? S.sessions.filter((s) => s.date === today()).map((s) => s.name).join(', ') : 'tap to start'} onClick={() => go('workout')} />
+        <Item on={strengthToday} label="Strength workout" sub={strengthToday ? S.sessions.filter((s) => s.date === today()).map((s) => s.name).join(', ') : 'tap to start'} onClick={() => go('gym')} />
         <Item on={pil} label="Pilates" sub={pil ? 'logged' : 'tap to add'} onClick={() => openSheet(<ActivitySheet preset="pilates" />)} />
         <Item on={yog} label="Yoga" sub={yog ? 'logged' : 'tap to add'} onClick={() => openSheet(<ActivitySheet preset="yoga" />)} />
         <Item on={!!d.ab} label="Ab circuit" sub={d.ab ? `${d.abRounds || ''} ${d.abRounds ? 'rounds' : 'done'}` : 'optional'} onClick={toggleAb} />
