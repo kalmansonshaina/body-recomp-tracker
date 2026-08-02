@@ -1,3 +1,6 @@
-node_modules/
-*.png.bak
-shot-*.png
+/node_modules
+/.next
+/out
+.DS_Store
+.vercel
+*.log
