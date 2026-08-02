@@ -262,6 +262,18 @@ export function ProfileSheet() {
       <Field label="Goal weight (opt)"><input className="input" type="number" value={f.gw} onChange={set('gw')} /></Field>
       <Field label="Program start"><input className="input" type="date" value={f.sd} onChange={set('sd')} /></Field>
     </div>
+    <Field label="Body-weight unit">
+      <div className="seg">
+        <button className={S.profile.weightUnit === 'lb' ? 'on' : ''} onClick={() => update((s) => { s.profile.weightUnit = 'lb'; })}>lb</button>
+        <button className={S.profile.weightUnit === 'kg' ? 'on' : ''} onClick={() => update((s) => { s.profile.weightUnit = 'kg'; })}>kg</button>
+      </div>
+    </Field>
+    <Field label="Measurement unit">
+      <div className="seg">
+        <button className={S.profile.measureUnit === 'in' ? 'on' : ''} onClick={() => update((s) => { s.profile.measureUnit = 'in'; })}>inches</button>
+        <button className={S.profile.measureUnit === 'cm' ? 'on' : ''} onClick={() => update((s) => { s.profile.measureUnit = 'cm'; })}>cm</button>
+      </div>
+    </Field>
     <button className="btn primary block" onClick={save}>Save</button>
   </>);
 }
@@ -406,12 +418,15 @@ export function ExHistorySheet({ exKey }) {
     </div>
     <div style={{ margin: '12px 0' }}><Rec prog={prog} /></div>
     <div className="section-title" style={{ marginLeft: 0 }}>History</div>
-    {all.length ? all.map(({ date, ex }, i) => (
-      <div key={i} className="row"><div className="main">
-        <div className="t">{ex.sets.filter((s) => s.reps).map((s) => `${s.weight || '–'}×${s.reps}`).join(', ')}</div>
-        <div className="s">{fmtDay(date)}{ex.pain && ex.pain !== 'none' ? ' · ⚠ ' + ex.pain : ''}{ex.note ? ' · ' + ex.note : ''}</div>
-      </div></div>
-    )) : <div className="empty small">No history yet.</div>}
+    {all.length ? all.map(({ date, ex }, i) => {
+      const eq = ex.equip ? ['band', 'smith', 'belt'].filter((k) => ex.equip[k]).join(' · ') : '';
+      return (
+        <div key={i} className="row"><div className="main">
+          <div className="t">{ex.sets.filter((s) => s.reps).map((s) => `${s.weight || '–'}×${s.reps}`).join(', ')}</div>
+          <div className="s">{fmtDay(date)}{eq ? ' · ' + eq : ''}{ex.pain && ex.pain !== 'none' ? ' · ⚠ ' + ex.pain : ''}{ex.note ? ' · ' + ex.note : ''}</div>
+        </div></div>
+      );
+    }) : <div className="empty small">No history yet.</div>}
     <div className="spacer" /><button className="btn block" onClick={closeSheet}>Close</button>
   </>);
 }

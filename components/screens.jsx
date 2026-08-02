@@ -205,7 +205,7 @@ function makeActive(S, type) {
       const last = lastPerf(S, it.key);
       const prevW = last ? Math.max(...last.ex.sets.filter((s) => s.reps).map((s) => +s.weight || 0)) : (S.exState[it.key]?.weight || '');
       return { key: it.key, min: it.min, max: it.max, perSide: !!it.perSide, prescribed: it.sets || 3,
-        sets: Array.from({ length: it.sets || 3 }, () => ({ weight: prevW || '', reps: '' })), rir: 2, pain: 'none', note: '' };
+        sets: Array.from({ length: it.sets || 3 }, () => ({ weight: prevW || '', reps: '' })), rir: 2, pain: 'none', equip: {}, note: '' };
     }),
     cardio: null, ab: false, warmup: false, cooldown: false, note: '',
   };
@@ -214,10 +214,12 @@ function addExerciseToActive(S, setActive, key) {
   setActive((a) => {
     const last = lastPerf(S, key);
     const prevW = last ? Math.max(...last.ex.sets.filter((s) => s.reps).map((s) => +s.weight || 0)) : (S.exState[key]?.weight || '');
-    a.exercises.push({ key, min: 8, max: 10, perSide: false, prescribed: 3, sets: Array.from({ length: 3 }, () => ({ weight: prevW || '', reps: '' })), rir: 2, pain: 'none', note: '' });
+    a.exercises.push({ key, min: 8, max: 10, perSide: false, prescribed: 3, sets: Array.from({ length: 3 }, () => ({ weight: prevW || '', reps: '' })), rir: 2, pain: 'none', equip: {}, note: '' });
     return a;
   });
 }
+// short label for equipment used, e.g. "band · smith"
+function equipStr(e) { const t = []; if (e && e.equip) { if (e.equip.band) t.push('band'); if (e.equip.smith) t.push('smith'); if (e.equip.belt) t.push('belt'); } return t.join(' · '); }
 
 /* ========================================================================= */
 /* WORKOUT                                                                   */
@@ -297,10 +299,11 @@ function ActiveWorkout({ go }) {
   const delSet = (ei) => setActive((a) => { if (a.exercises[ei].sets.length > 1) a.exercises[ei].sets.pop(); return a; });
   const toggleDone = (ei, si) => setActive((a) => { a.exercises[ei].sets[si].done = !a.exercises[ei].sets[si].done; return a; });
   const setRir = (ei, v) => setActive((a) => { a.exercises[ei].rir = v; return a; });
+  const toggleEquip = (ei, key) => setActive((a) => { const e = a.exercises[ei]; e.equip = e.equip || {}; e.equip[key] = !e.equip[key]; return a; });
 
   const cancel = () => { if (confirm('Discard this workout? Nothing will be saved.')) setActive(null); };
   const finish = () => {
-    const exs = active.exercises.map((e) => ({ key: e.key, rir: e.rir, pain: e.pain, note: e.note,
+    const exs = active.exercises.map((e) => ({ key: e.key, rir: e.rir, pain: e.pain, note: e.note, equip: e.equip || {},
       sets: e.sets.filter((s) => s.reps !== '' || s.weight !== '').map((s) => ({ weight: s.weight === '' ? null : +s.weight, reps: s.reps === '' ? null : +s.reps, done: !!s.done })) }));
     if (!exs.some((e) => e.sets.some((s) => s.reps)) && !confirm('No sets logged yet — save this workout anyway?')) return;
     const session = { id: active.id, date: active.date, type: active.type, name: active.name, group: grp, exercises: exs, ab: !!active.ab, cardio: active.cardio || null, warmup: !!active.warmup, cooldown: !!active.cooldown, note: active.note || '' };
@@ -330,7 +333,8 @@ function ActiveWorkout({ go }) {
       const logged = ex.sets.some((s) => s.reps);
       const prog = logged ? progression(S, item, { sets: ex.sets, rir: ex.rir, pain: ex.pain }) : progression(S, item);
       const last = lastPerf(S, ex.key);
-      const lastTxt = last ? `Last: ${last.ex.sets.filter((s) => s.reps).map((s) => `${s.weight || '–'}×${s.reps}`).join(', ')}` : 'No history yet';
+      const lastEq = last ? equipStr(last.ex) : '';
+      const lastTxt = last ? `Last: ${last.ex.sets.filter((s) => s.reps).map((s) => `${s.weight || '–'}×${s.reps}`).join(', ')}${lastEq ? ' · ' + lastEq : ''}` : 'No history yet';
       return (
         <Reveal key={ei} delay={0.03 * ei} className="card">
           <div className="card-title" style={{ alignItems: 'flex-start' }}>
@@ -352,7 +356,13 @@ function ActiveWorkout({ go }) {
           </div>
           <div className="small muted" style={{ marginBottom: 6 }}>Effort — how many reps left in the tank?</div>
           <div className="chips">{rirLabels.map(([v, l]) => <button key={v} className={cx('chip', String(ex.rir) === v && 'on')} onClick={() => setRir(ei, +v)}>{l}</button>)}</div>
-          <div className="small muted" style={{ margin: '8px 0 10px' }}>{lastTxt}</div>
+          <div className="small muted" style={{ margin: '10px 0 6px' }}>Equipment used</div>
+          <div className="chips">
+            <button className={cx('chip', ex.equip?.band && 'on')} onClick={() => toggleEquip(ei, 'band')}>🎗️ Band</button>
+            <button className={cx('chip', ex.equip?.smith && 'on')} onClick={() => toggleEquip(ei, 'smith')}>🏋️ Smith machine</button>
+            <button className={cx('chip', ex.equip?.belt && 'on')} onClick={() => toggleEquip(ei, 'belt')}>Belt</button>
+          </div>
+          <div className="small muted" style={{ margin: '10px 0 10px' }}>{lastTxt}</div>
           <Rec prog={prog} />
         </Reveal>
       );
