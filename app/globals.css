@@ -37,7 +37,7 @@ html{-webkit-text-size-adjust:100%}
 body{
   font-family:var(--font); color:var(--ink); line-height:1.45;
   -webkit-font-smoothing:antialiased; overscroll-behavior-y:none; touch-action:manipulation;
-  min-height:100vh;
+  min-height:100vh; min-height:100dvh;
   background:
     radial-gradient(130% 80% at 50% -10%, rgba(96,166,255,.60) 0%, rgba(120,205,235,.30) 34%, rgba(150,200,240,0) 62%),
     radial-gradient(95% 60% at 88% 6%, rgba(138,123,255,.30) 0%, rgba(138,123,255,0) 55%),
@@ -62,7 +62,7 @@ svg[viewBox="0 0 24 24"]{width:17px;height:17px;fill:none;stroke:currentColor;st
 .tile .k svg[viewBox="0 0 24 24"]{width:14px;height:14px;vertical-align:-2px}
 .install svg[viewBox="0 0 24 24"]{width:22px;height:22px}
 
-#app{max-width:560px;margin:0 auto;min-height:100vh;padding-bottom:calc(94px + var(--safe-bot))}
+#app{max-width:560px;margin:0 auto;min-height:100vh;min-height:100dvh;padding-bottom:calc(94px + var(--safe-bot))}
 .screen{padding:0 18px 26px}
 
 .appbar{position:sticky;top:0;z-index:20;padding:calc(var(--safe-top) + 18px) 18px 12px;
@@ -271,7 +271,7 @@ ul.hint{padding-left:18px;line-height:1.9;margin:0}
 .grad-text{background:linear-gradient(120deg,var(--accent),var(--accent-2));-webkit-background-clip:text;background-clip:text;color:transparent}
 
 /* ===== Home hero (category landing, "aura" reference style) ============== */
-.hero{position:relative;min-height:100vh;display:flex;flex-direction:column;
+.hero{position:relative;min-height:100vh;min-height:100dvh;height:100dvh;display:flex;flex-direction:column;
   padding:calc(var(--safe-top) + 26px) 26px calc(var(--safe-bot) + 20px);overflow:hidden}
 .hero::before{content:"";position:absolute;inset:-12vh -20vw;z-index:-2;
   background:linear-gradient(180deg,#f4eee3 0%,#eef1f6 52%,#f2ede5 100%)}

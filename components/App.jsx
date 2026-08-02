@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { StoreProvider, useStore } from '@/lib/store';
 import { Icon, cx } from './ui';
@@ -48,9 +48,8 @@ function Toast() {
 }
 
 function Shell() {
-  const { ready, active, navTab, clearNav } = useStore();
+  const { ready, navTab, clearNav } = useStore();
   const [tab, setTab] = useState('home');
-  const resumed = useRef(false);
 
   // Let sheets/screens request a tab change (e.g. "Edit" a logged workout
   // opens it in the Gym editor from anywhere).
@@ -62,12 +61,6 @@ function Shell() {
       navigator.serviceWorker.register(`${BP}/sw.js`, { scope: `${BP}/` }).catch(() => {});
     }
   }, []);
-
-  // If there's an in-progress workout when the app opens, drop straight into it
-  // so you never land on Home and accidentally start a fresh session.
-  useEffect(() => {
-    if (ready && active && !resumed.current) { resumed.current = true; setTab('gym'); }
-  }, [ready, active]);
 
   if (!ready) return null;
   const Screen = SCREENS[tab] || SCREENS.home;
