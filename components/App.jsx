@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { StoreProvider, useStore } from '@/lib/store';
 import { Icon, cx } from './ui';
 import { Home, Dashboard, Workout, Log, Progress, More } from './screens';
+import { IdentityPage, IdentityReveal } from './identity';
 
 const TABS = [
   { id: 'home', label: 'Home', icon: 'home' },
@@ -13,7 +14,7 @@ const TABS = [
   { id: 'progress', label: 'Progress', icon: 'trend' },
   { id: 'more', label: 'More', icon: 'more' },
 ];
-const SCREENS = { home: Home, dashboard: Dashboard, gym: Workout, movement: Log, progress: Progress, more: More };
+const SCREENS = { home: Home, dashboard: Dashboard, gym: Workout, movement: Log, identity: IdentityPage, progress: Progress, more: More };
 
 function SheetHost() {
   const { sheet, closeSheet } = useStore();
@@ -81,6 +82,7 @@ function Shell() {
           ))}
         </nav>
       )}
+      <IdentityReveal />
       <SheetHost />
       <Toast />
     </>

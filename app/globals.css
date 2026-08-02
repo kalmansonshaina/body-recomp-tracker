@@ -304,3 +304,54 @@ ul.hint{padding-left:18px;line-height:1.9;margin:0}
 .tabbar{padding:9px 3px}
 .tab{font-size:9.5px}
 .tab svg{width:22px;height:22px}
+
+/* ===== Identity ========================================================== */
+.serif{font-family:var(--font-serif, Georgia, serif)}
+
+/* collapsed dashboard card */
+.id-collapsed{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  border:1px solid var(--card-bd);border-radius:999px;padding:14px 20px;margin-bottom:14px;cursor:pointer;
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:var(--shadow);-webkit-tap-highlight-color:transparent}
+.id-collapsed .idc-label{font-size:14px;font-weight:600;color:var(--ink);letter-spacing:-.01em}
+.id-collapsed .idc-title{font-weight:800}
+.id-collapsed .idc-mark{font-size:15px;color:var(--accent-ink);opacity:.8}
+
+/* full-screen reveal */
+.id-backdrop{position:fixed;inset:0;z-index:55;display:flex;align-items:stretch;justify-content:center}
+.id-full{position:relative;width:100%;max-width:560px;margin:0 auto;color:#fff;display:flex;flex-direction:column;
+  padding:calc(var(--safe-top) + 30px) 30px calc(var(--safe-bot) + 26px);overflow:hidden;cursor:pointer;
+  border-radius:0}
+.id-full::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(120% 60% at 50% 12%, rgba(255,255,255,.28), rgba(255,255,255,0) 60%)}
+.id-close{position:absolute;top:calc(var(--safe-top) + 20px);right:22px;width:40px;height:40px;border-radius:50%;
+  border:0;background:rgba(255,255,255,.25);color:#fff;display:grid;place-items:center;cursor:pointer;z-index:2;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.id-close svg{width:18px;height:18px;stroke:#fff}
+.id-full-inner{margin-top:auto;margin-bottom:auto;position:relative;z-index:1}
+.id-cat{font-size:14px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;opacity:.9;margin-bottom:20px;
+  text-shadow:0 1px 12px rgba(0,0,0,.14)}
+.id-cat-emoji{font-size:16px}
+.id-aff{font-size:33px;line-height:1.28;font-weight:500;letter-spacing:-.01em;margin:0;max-width:15ch;
+  text-shadow:0 2px 26px rgba(0,0,0,.16)}
+.id-date{margin-top:26px;font-size:13px;font-weight:600;opacity:.72;letter-spacing:.02em}
+.id-actions{position:relative;z-index:1;display:flex;align-items:center;gap:12px;margin-top:22px}
+.id-act{border:0;background:rgba(255,255,255,.24);color:#fff;font-weight:700;font-size:15px;
+  min-width:48px;height:48px;padding:0 16px;border-radius:999px;cursor:pointer;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.id-act.wide{flex:1;font-weight:800;letter-spacing:.02em}
+.id-swipe-hint{position:relative;z-index:1;text-align:center;font-size:12px;opacity:.6;margin-top:16px;font-weight:600}
+
+/* identity page */
+.id-page-head{padding:2px 2px 8px}
+.id-page-title{font-size:30px;font-weight:500;letter-spacing:-.01em}
+.id-card{display:block;width:100%;text-align:left;border:1px solid var(--card-bd);border-radius:var(--radius);
+  padding:18px 20px;margin-bottom:12px;cursor:pointer;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+  box-shadow:var(--shadow);-webkit-tap-highlight-color:transparent}
+.id-card-cat{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.id-card-aff{font-size:19px;line-height:1.35;font-weight:500;color:var(--ink);letter-spacing:-.01em}
+.id-read{display:flex;align-items:center;gap:13px;padding:14px 4px;cursor:pointer;-webkit-tap-highlight-color:transparent;margin-top:4px}
+.id-read .box{width:27px;height:27px;border-radius:9px;border:2px solid var(--line-2);flex:none;display:grid;place-items:center;transition:all .16s}
+.id-read .box svg{width:16px;height:16px;stroke:#fff;fill:none;stroke-width:3;opacity:0;transform:scale(.5);transition:all .16s}
+.id-read.on .box{background:linear-gradient(135deg,var(--accent),var(--accent-2));border-color:transparent}
+.id-read.on .box svg{opacity:1;transform:none}
+.id-read .lbl{font-weight:700;font-size:15px}
+.id-reflect .id-prompt{font-size:18px;font-weight:500;line-height:1.4;color:var(--ink-soft);font-style:italic}
+.id-fav{border:0;background:none;font-size:22px;color:var(--accent);cursor:pointer;width:34px;flex:none;line-height:1}

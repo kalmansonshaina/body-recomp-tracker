@@ -9,6 +9,7 @@ import {
   TargetsSheet, ProfileSheet, ExMenuSheet, ExHistorySheet, LibrarySheet, ReviewSheet, FinishSummary,
   ExercisePickerSheet, EditWorkoutSheet,
 } from './sheets';
+import { IdentityCollapsedCard } from './identity';
 import {
   today, uid, round1, fmtDay, fmtShort, wt, defaultState,
   exDef, getWorkouts, workoutById, findItem, WARMUPS, COOLDOWNS, DEFAULT_WORKOUTS,
@@ -55,6 +56,7 @@ export function Home({ go }) {
   const leadMeta = rot.next ? `${rot.next.items.length} exercises · warm-up included` : `recomp score ${sc.total}/100 this week`;
   const cats = [
     { id: 'dashboard', label: 'dashboard' },
+    { id: 'identity', label: 'identity' },
     { id: 'movement', label: 'movement' },
     { id: 'progress', label: 'progress' },
     { id: 'more', label: 'more' },
@@ -105,6 +107,8 @@ export function Dashboard({ go }) {
     <AppBar title="Dashboard" sub={`Hi${S.profile.name ? ', ' + S.profile.name.split(' ')[0] : ''} · consistency over perfection`} right={fmtDay(today())} />
     <main className="screen">
       <InstallHint />
+      <IdentityCollapsedCard />
+      <button className="btn ghost sm block" style={{ margin: '-6px 0 15px' }} onClick={() => go('identity')}>✨ Open today’s full identity →</button>
       <div className="orb-wrap">
         <Reveal className="orb-status"><Pill tone={status.pill}>{status.label}</Pill></Reveal>
         <Orb total={sc.total} />

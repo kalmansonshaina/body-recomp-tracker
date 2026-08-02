@@ -1,6 +1,6 @@
 'use client';
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
-import { defaultState } from './data';
+import { defaultState, defaultIdentity, today } from './data';
 
 const KEY = 'brt.state.v1';
 const PKEY = 'brt.photos.v1';
@@ -25,6 +25,7 @@ export function StoreProvider({ children }) {
   const [active, setActiveState] = useState(null);
   const [sheet, setSheet] = useState(null);
   const [toastMsg, setToastMsg] = useState('');
+  const [identityOpen, setIdentityOpen] = useState(null);
   const ready = S != null;
   const toastTimer = useRef();
 
@@ -56,8 +57,14 @@ export function StoreProvider({ children }) {
   const openSheet = useCallback((node) => setSheet(() => node), []);
   const closeSheet = useCallback(() => setSheet(null), []);
 
-  const value = { S, ready, photos, active, sheet, toastMsg,
-    update, setActive, savePhotos, openSheet, closeSheet, toast, setS, setPhotos };
+  const openIdentity = useCallback((catId, layoutId) => {
+    setIdentityOpen({ catId, layoutId });
+    setS((prev) => { if (!prev) return prev; const s = structuredClone(prev); if (!s.identity) s.identity = defaultIdentity(); (s.identity.daily[today()] ||= {}).read = true; return s; });
+  }, []);
+  const closeIdentity = useCallback(() => setIdentityOpen(null), []);
+
+  const value = { S, ready, photos, active, sheet, toastMsg, identityOpen,
+    update, setActive, savePhotos, openSheet, closeSheet, openIdentity, closeIdentity, toast, setS, setPhotos };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
