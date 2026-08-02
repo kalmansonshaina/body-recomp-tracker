@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { useStore } from '@/lib/store';
 import { Icon, Reveal, Tap, Orb, Ring, Bar, Pill, Sparkline, WeightChart, Rec, cx } from './ui';
 import {
-  WeightSheet, StepsSheet, CheckinSheet, ActivitySheet, CardioSheet, AbsSheet,
+  WeightSheet, StartWeightSheet, WeighInEditSheet, StepsSheet, CheckinSheet, ActivitySheet, CardioSheet, AbsSheet,
   MeasureSheet, PhotoSheet, PhotoViewSheet, SuppQuickSheet, SuppManageSheet,
   TargetsSheet, ProfileSheet, ExMenuSheet, ExHistorySheet, LibrarySheet, ReviewSheet, FinishSummary,
   ExercisePickerSheet, EditWorkoutSheet, EntrySheet, WorkoutHistorySheet, SessionDetailSheet,
@@ -542,9 +542,15 @@ function ProgWeight() {
         <div className="tile g-sage"><div className="k">Week change</div><div className="v" style={{ color: t.delta <= 0 ? 'var(--sage)' : 'var(--ink)' }}>{t.delta != null ? (t.delta <= 0 ? '▼ ' : '▲ ') + Math.abs(t.delta) : '—'}</div></div>
         <div className="tile g-gold"><div className="k">From start</div><div className="v">{t.fromStart != null ? (t.fromStart <= 0 ? '▼ ' : '▲ ') + Math.abs(t.fromStart) : '—'}</div></div>
       </div>
+      <div className="hairline" style={{ margin: '12px 0 2px' }} />
+      <div className="row tap" onClick={() => openSheet(<StartWeightSheet />)}>
+        <div className="ic"><Icon name="scale" /></div>
+        <div className="main"><div className="t">Starting weight</div><div className="s">{S.profile.startWeight != null ? `since ${fmtShort(S.profile.startDate)} · tap to edit` : 'not set · tap to add'}</div></div>
+        <div className="end" style={{ fontWeight: 800 }}>{S.profile.startWeight != null ? wt(S, S.profile.startWeight) : 'Set'}</div>
+      </div>
       <div className="hint" style={{ marginTop: 10 }}>Daily ups and downs are water, food and hormones — watch the weekly average, not any single morning.</div>
     </div>
-    <div className="card"><div className="card-title"><h2>Recent weigh-ins</h2></div>{recent.map((p, i) => <div key={i} className="row"><div className="main"><div className="t">{wt(S, p.w)}</div></div><div className="end small muted">{fmtDay(p.date)}</div></div>)}</div>
+    <div className="card"><div className="card-title"><h2>Recent weigh-ins</h2><span className="muted small">tap to edit or delete</span></div>{recent.map((p, i) => <div key={i} className="row tap" onClick={() => openSheet(<WeighInEditSheet date={p.date} />)}><div className="main"><div className="t">{wt(S, p.w)}</div></div><div className="end small muted">{fmtDay(p.date)} ›</div></div>)}</div>
   </>);
 }
 function ProgMeasure() {

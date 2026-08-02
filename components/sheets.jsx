@@ -23,6 +23,35 @@ export function WeightSheet() {
     <button className="btn primary block" onClick={save}>Save</button>
   </>);
 }
+export function StartWeightSheet() {
+  const { S, update, closeSheet, toast } = useStore();
+  const bodyUnit = S.profile.bodyUnit || S.profile.weightUnit || 'lb';
+  const [v, setV] = useState(S.profile.startWeight ?? '');
+  const [d, setD] = useState(S.profile.startDate || today());
+  const save = () => { update((s) => { s.profile.startWeight = v === '' ? null : +v; s.profile.startDate = d || s.profile.startDate; }); toast('Starting weight saved'); closeSheet(); };
+  return (<>
+    <h2>Starting weight</h2><p className="sub">The baseline your “from start” progress is measured against.</p>
+    <Field label={`Starting weight (${bodyUnit})`}><input className="input" type="number" inputMode="decimal" autoFocus value={v} onChange={(e) => setV(e.target.value)} placeholder="e.g. 150" /></Field>
+    <Field label="Start date"><input className="input" type="date" value={d} onChange={(e) => setD(e.target.value)} /></Field>
+    <button className="btn primary block" onClick={save}>Save</button>
+    <div className="spacer" /><button className="btn ghost block" onClick={closeSheet}>Close</button>
+  </>);
+}
+export function WeighInEditSheet({ date }) {
+  const { S, update, closeSheet, toast } = useStore();
+  const bodyUnit = S.profile.bodyUnit || S.profile.weightUnit || 'lb';
+  const [v, setV] = useState(S.daily[date]?.weight ?? '');
+  const save = () => { update((s) => { (s.daily[date] ||= {}).weight = v === '' ? null : +v; }); toast('Weigh-in updated'); closeSheet(); };
+  const del = () => { if (!confirm('Delete this weigh-in?')) return; update((s) => { if (s.daily[date]) s.daily[date].weight = null; }); toast('Weigh-in deleted'); closeSheet(); };
+  return (<>
+    <h2>Edit weigh-in</h2><p className="sub">{fmtDay(date)}</p>
+    <Field label={`Weight (${bodyUnit})`}><input className="input" type="number" inputMode="decimal" autoFocus value={v} onChange={(e) => setV(e.target.value)} /></Field>
+    <button className="btn primary block" onClick={save}>Save</button>
+    <div className="spacer" />
+    <button className="btn ghost danger block" onClick={del}>Delete weigh-in</button>
+    <div className="spacer" /><button className="btn ghost block" onClick={closeSheet}>Close</button>
+  </>);
+}
 export function StepsSheet() {
   const { S, update, closeSheet, toast } = useStore();
   const [v, setV] = useState(S.daily[today()]?.steps ?? '');
