@@ -152,7 +152,7 @@ export function Dashboard({ go }) {
       <Reveal delay={0.15} className="card">
         <div className="card-title"><h2>Today</h2><span className="muted small">{fmtShort(today())}</span></div>
         <div className="tiles">
-          <div className="tile g-blue"><div className="k"><Icon name="scale" /> Weight</div><div className="v">{d.weight ? round1(d.weight) : '—'}<small> {d.weight ? S.profile.weightUnit : ''}</small></div></div>
+          <div className="tile g-blue"><div className="k"><Icon name="scale" /> Weight</div><div className="v">{d.weight ? round1(d.weight) : '—'}<small> {d.weight ? (S.profile.bodyUnit || S.profile.weightUnit) : ''}</small></div></div>
           <div className="tile g-sage"><div className="k"><Icon name="walk" /> Steps</div><div className="v">{d.steps ? (+d.steps).toLocaleString() : '—'}</div></div>
         </div>
         <div className="chips" style={{ marginTop: 12 }}>
@@ -182,13 +182,13 @@ export function Dashboard({ go }) {
           <div className="tile g-cyan"><div className="k"><Icon name="stairs" /> StairMaster</div><div className="v">{b.stair}<small> sess</small></div></div>
           <div className="tile g-blue"><div className="k"><Icon name="walk" /> Treadmill</div><div className="v">{b.tread}<small> sess</small></div></div>
           <div className="tile g-pink"><div className="k">❤️ Supplement days</div><div className="v">{b.supp.days}<small>/{b.supp.possibleDays} days</small></div></div>
-          <div className="tile g-gold"><div className="k"><Icon name="scale" /> Avg weight</div><div className="v">{b.avgWeight ? round1(b.avgWeight) : '—'}<small> {b.avgWeight ? S.profile.weightUnit : ''}</small></div></div>
+          <div className="tile g-gold"><div className="k"><Icon name="scale" /> Avg weight</div><div className="v">{b.avgWeight ? round1(b.avgWeight) : '—'}<small> {b.avgWeight ? (S.profile.bodyUnit || S.profile.weightUnit) : ''}</small></div></div>
         </div>
       </Reveal>
 
       {w.length >= 2 && (
         <Reveal delay={0.25} className="card">
-          <div className="card-title"><h2>Weight trend</h2>{t.delta != null && <Pill tone={t.delta <= 0 ? 'sage' : 'muted'}>{t.delta <= 0 ? '▼' : '▲'} {Math.abs(t.delta)} {S.profile.weightUnit}/wk</Pill>}</div>
+          <div className="card-title"><h2>Weight trend</h2>{t.delta != null && <Pill tone={t.delta <= 0 ? 'sage' : 'muted'}>{t.delta <= 0 ? '▼' : '▲'} {Math.abs(t.delta)} {S.profile.bodyUnit || S.profile.weightUnit}/wk</Pill>}</div>
           <Sparkline values={w.map((p) => p.w)} />
           <div className="metric" style={{ marginTop: 10 }}><div className="lbl"><div className="s">7-day average</div></div><div className="val">{t.cur != null ? wt(S, t.cur) : '—'}</div></div>
         </Reveal>
@@ -537,8 +537,8 @@ function ProgWeight() {
       <div className="card-title"><h2>Weight trend</h2><button className="btn sm" onClick={() => openSheet(<WeightSheet />)}><Icon name="plus" /> Weigh in</button></div>
       <WeightChart points={w} rollingAvg={(d) => rollingAvg(S, d, 7)} />
       <div className="tiles" style={{ marginTop: 12 }}>
-        <div className="tile g-blue"><div className="k">7-day average</div><div className="v">{t.cur != null ? round1(t.cur) : '—'}<small> {S.profile.weightUnit}</small></div></div>
-        <div className="tile g-cyan"><div className="k">Prev 7-day</div><div className="v">{t.prev != null ? round1(t.prev) : '—'}<small> {S.profile.weightUnit}</small></div></div>
+        <div className="tile g-blue"><div className="k">7-day average</div><div className="v">{t.cur != null ? round1(t.cur) : '—'}<small> {S.profile.bodyUnit || S.profile.weightUnit}</small></div></div>
+        <div className="tile g-cyan"><div className="k">Prev 7-day</div><div className="v">{t.prev != null ? round1(t.prev) : '—'}<small> {S.profile.bodyUnit || S.profile.weightUnit}</small></div></div>
         <div className="tile g-sage"><div className="k">Week change</div><div className="v" style={{ color: t.delta <= 0 ? 'var(--sage)' : 'var(--ink)' }}>{t.delta != null ? (t.delta <= 0 ? '▼ ' : '▲ ') + Math.abs(t.delta) : '—'}</div></div>
         <div className="tile g-gold"><div className="k">From start</div><div className="v">{t.fromStart != null ? (t.fromStart <= 0 ? '▼ ' : '▲ ') + Math.abs(t.fromStart) : '—'}</div></div>
       </div>
@@ -660,9 +660,9 @@ export function More() {
       </Reveal>
       <Reveal delay={0.1} className="card">
         <div className="card-title"><h2>Units</h2></div>
-        <div className="field"><label>Body weight</label><div className="seg">
-          <button className={p.weightUnit === 'lb' ? 'on' : ''} onClick={() => setUnit('weightUnit', 'lb')}>lb</button>
-          <button className={p.weightUnit === 'kg' ? 'on' : ''} onClick={() => setUnit('weightUnit', 'kg')}>kg</button></div></div>
+        <div className="field"><label>Body weight <span className="muted small" style={{ fontWeight: 600 }}>· weigh-ins (lifting weight is set per workout)</span></label><div className="seg">
+          <button className={(p.bodyUnit || p.weightUnit) === 'lb' ? 'on' : ''} onClick={() => setUnit('bodyUnit', 'lb')}>lb</button>
+          <button className={(p.bodyUnit || p.weightUnit) === 'kg' ? 'on' : ''} onClick={() => setUnit('bodyUnit', 'kg')}>kg</button></div></div>
         <div className="field" style={{ margin: 0 }}><label>Measurements</label><div className="seg">
           <button className={p.measureUnit === 'in' ? 'on' : ''} onClick={() => setUnit('measureUnit', 'in')}>inches</button>
           <button className={p.measureUnit === 'cm' ? 'on' : ''} onClick={() => setUnit('measureUnit', 'cm')}>cm</button></div></div>

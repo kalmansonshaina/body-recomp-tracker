@@ -19,7 +19,7 @@ export function WeightSheet() {
   const save = () => { update((s) => { (s.daily[today()] ||= {}).weight = numOr(v); }); toast('Weight logged'); closeSheet(); };
   return (<>
     <h2>Log weight</h2><p className="sub">Weigh under similar conditions — ideally first thing.</p>
-    <Field label={`Weight (${S.profile.weightUnit})`}><input className="input" type="number" inputMode="decimal" autoFocus value={v} onChange={(e) => setV(e.target.value)} placeholder="e.g. 138.4" /></Field>
+    <Field label={`Weight (${S.profile.bodyUnit || S.profile.weightUnit})`}><input className="input" type="number" inputMode="decimal" autoFocus value={v} onChange={(e) => setV(e.target.value)} placeholder="e.g. 138.4" /></Field>
     <button className="btn primary block" onClick={save}>Save</button>
   </>);
 }
@@ -42,7 +42,7 @@ export function CheckinSheet() {
   return (<>
     <h2>Daily check-in</h2><p className="sub">About a minute — helps explain the ups and downs.</p>
     <div className="grid2">
-      <Field label={`Weight (${S.profile.weightUnit})`}><input className="input" type="number" inputMode="decimal" value={f.weight} onChange={set('weight')} /></Field>
+      <Field label={`Weight (${S.profile.bodyUnit || S.profile.weightUnit})`}><input className="input" type="number" inputMode="decimal" value={f.weight} onChange={set('weight')} /></Field>
       <Field label="Steps"><input className="input" type="number" inputMode="numeric" value={f.steps} onChange={set('steps')} /></Field>
     </div>
     <Field label="Energy"><Select value={f.energy} onChange={set('energy')} options={[['', '—'], 'Very low', 'Low', 'Normal', 'High']} /></Field>
@@ -257,7 +257,7 @@ export function MeasureSheet() {
   return (<>
     <h2>Measurements</h2><p className="sub">Every 2–4 weeks, same time of day. Prefilled with your last values.</p>
     <Field label="Date"><input className="input" type="date" value={f.date} onChange={set('date')} /></Field>
-    <Field label={`Weight (${S.profile.weightUnit})`}><input className="input" type="number" inputMode="decimal" value={f.weight} onChange={set('weight')} /></Field>
+    <Field label={`Weight (${S.profile.bodyUnit || S.profile.weightUnit})`}><input className="input" type="number" inputMode="decimal" value={f.weight} onChange={set('weight')} /></Field>
     {MFIELDS.map((fl) => <Field key={fl.k} label={`${fl.label} (${S.profile.measureUnit})`} hint={fl.hint}><input className="input" type="number" inputMode="decimal" value={f[fl.k]} onChange={set(fl.k)} /></Field>)}
     <button className="btn primary block" onClick={save}>Save measurements</button>
   </>);
@@ -372,6 +372,7 @@ export function TargetsSheet() {
 export function ProfileSheet() {
   const { S, update, closeSheet, toast } = useStore();
   const p = S.profile;
+  const bodyUnit = p.bodyUnit || p.weightUnit || 'lb';
   const [f, setF] = useState({ name: p.name, h: p.heightIn ?? '', sw: p.startWeight ?? '', gw: p.goalWeight ?? '', sd: p.startDate });
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   const save = () => { update((s) => { s.profile.name = f.name; s.profile.heightIn = numOr(f.h); s.profile.startWeight = numOr(f.sw); s.profile.goalWeight = numOr(f.gw); s.profile.startDate = f.sd || s.profile.startDate; }); toast('Profile saved'); closeSheet(); };
@@ -380,14 +381,14 @@ export function ProfileSheet() {
     <Field label="Name"><input className="input" value={f.name} onChange={set('name')} placeholder="First name" /></Field>
     <div className="grid2">
       <Field label="Height (in)"><input className="input" type="number" value={f.h} onChange={set('h')} /></Field>
-      <Field label={`Start weight (${S.profile.weightUnit})`}><input className="input" type="number" value={f.sw} onChange={set('sw')} /></Field>
+      <Field label={`Start weight (${bodyUnit})`}><input className="input" type="number" value={f.sw} onChange={set('sw')} /></Field>
       <Field label="Goal weight (opt)"><input className="input" type="number" value={f.gw} onChange={set('gw')} /></Field>
       <Field label="Program start"><input className="input" type="date" value={f.sd} onChange={set('sd')} /></Field>
     </div>
-    <Field label="Body-weight unit">
+    <Field label="Body-weight unit" hint="For weigh-ins & measurements. Lifting weight is set per workout.">
       <div className="seg">
-        <button className={S.profile.weightUnit === 'lb' ? 'on' : ''} onClick={() => update((s) => { s.profile.weightUnit = 'lb'; })}>lb</button>
-        <button className={S.profile.weightUnit === 'kg' ? 'on' : ''} onClick={() => update((s) => { s.profile.weightUnit = 'kg'; })}>kg</button>
+        <button className={bodyUnit === 'lb' ? 'on' : ''} onClick={() => update((s) => { s.profile.bodyUnit = 'lb'; })}>lb</button>
+        <button className={bodyUnit === 'kg' ? 'on' : ''} onClick={() => update((s) => { s.profile.bodyUnit = 'kg'; })}>kg</button>
       </div>
     </Field>
     <Field label="Measurement unit">
@@ -614,7 +615,7 @@ export function ReviewSheet() {
       <Q label="Treadmill" val={`${b.tread}`} />
       <Q label="Days took supplements" val={b.supp.possibleDays ? `${b.supp.days}/${b.supp.possibleDays}` : '—'} />
       <Q label="Weekly avg weight" val={b.avgWeight ? wt(S, b.avgWeight) : '—'} />
-      <Q label="Weight trend" val={t.delta != null ? `${t.delta <= 0 ? '▼' : '▲'} ${Math.abs(t.delta)} ${S.profile.weightUnit}/wk` : '—'} />
+      <Q label="Weight trend" val={t.delta != null ? `${t.delta <= 0 ? '▼' : '▲'} ${Math.abs(t.delta)} ${S.profile.bodyUnit || S.profile.weightUnit}/wk` : '—'} />
       <Q label="Lifts progressed" val={progressed ? 'Yes 💪' : 'Held steady'} />
       <div className="metric"><div className="lbl"><div className="t">Pain recorded</div></div><div className="val">{pain ? <span className="pill danger">Yes</span> : 'None'}</div></div>
     </div>
