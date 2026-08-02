@@ -7,15 +7,15 @@ import {
   WeightSheet, StepsSheet, CheckinSheet, ActivitySheet, CardioSheet, AbsSheet,
   MeasureSheet, PhotoSheet, PhotoViewSheet, SuppQuickSheet, SuppManageSheet,
   TargetsSheet, ProfileSheet, ExMenuSheet, ExHistorySheet, LibrarySheet, ReviewSheet, FinishSummary,
+  ExercisePickerSheet, EditWorkoutSheet,
 } from './sheets';
 import {
   today, uid, round1, fmtDay, fmtShort, wt, defaultState,
-  EX, WORKOUTS, workoutById, ACTIVITY_TYPES, CARDIO_TYPES, MFIELDS,
+  exDef, getWorkouts, workoutById, findItem, WARMUPS, COOLDOWNS, DEFAULT_WORKOUTS,
+  ACTIVITY_TYPES, CARDIO_TYPES, MFIELDS,
   weekBundle, weekRotation, weekStatus, weekDates, startOfWeek,
   recompScore, trendSummary, weighIns, rollingAvg, lastPerf, bestSet, allPerf, progression,
 } from '@/lib/data';
-
-const findItem = (key) => WORKOUTS.flatMap((w) => w.items).find((i) => i.key === key) || { key, min: 8, max: 10 };
 const AppBar = ({ title, sub, right }) => (
   <header className="appbar"><div><h1>{title}</h1>{sub && <div className="sub">{sub}</div>}</div><div className="date">{right}</div></header>
 );
@@ -147,17 +147,25 @@ function StartButton({ go, id, label }) {
 }
 
 function makeActive(S, type) {
-  const w = workoutById(type);
+  const w = workoutById(S, type);
   return {
-    id: uid(), date: today(), type, name: w.name,
+    id: uid(), date: today(), type, name: w.name, group: w.group || 'lower',
     exercises: w.items.map((it) => {
       const last = lastPerf(S, it.key);
       const prevW = last ? Math.max(...last.ex.sets.filter((s) => s.reps).map((s) => +s.weight || 0)) : (S.exState[it.key]?.weight || '');
-      return { key: it.key, name: EX[it.key].name, subName: null, min: it.min, max: it.max, perSide: !!it.perSide, prescribed: it.sets,
-        sets: Array.from({ length: it.sets }, () => ({ weight: prevW || '', reps: '' })), rir: 2, pain: 'none', note: '' };
+      return { key: it.key, min: it.min, max: it.max, perSide: !!it.perSide, prescribed: it.sets || 3,
+        sets: Array.from({ length: it.sets || 3 }, () => ({ weight: prevW || '', reps: '' })), rir: 2, pain: 'none', note: '' };
     }),
-    cardio: null, ab: false, note: '',
+    cardio: null, ab: false, warmup: false, cooldown: false, note: '',
   };
+}
+function addExerciseToActive(S, setActive, key) {
+  setActive((a) => {
+    const last = lastPerf(S, key);
+    const prevW = last ? Math.max(...last.ex.sets.filter((s) => s.reps).map((s) => +s.weight || 0)) : (S.exState[key]?.weight || '');
+    a.exercises.push({ key, min: 8, max: 10, perSide: false, prescribed: 3, sets: Array.from({ length: 3 }, () => ({ weight: prevW || '', reps: '' })), rir: 2, pain: 'none', note: '' });
+    return a;
+  });
 }
 
 /* ========================================================================= */
@@ -172,16 +180,23 @@ export function Workout({ go }) {
 }
 
 function Picker({ go }) {
-  const { S, active, setActive } = useStore();
+  const { S, active, setActive, openSheet, update } = useStore();
   const rot = weekRotation(S);
+  const workouts = getWorkouts(S);
   const start = (id) => {
     if (active && active.type !== id && !confirm('Discard your in-progress workout and start a new one?')) return;
     if (!active || active.type !== id) setActive(makeActive(S, id));
     go('workout');
   };
+  const edit = (e, id) => { e.stopPropagation(); openSheet(<EditWorkoutSheet workoutId={id} />); };
+  const newWorkout = () => {
+    const id = 'w_' + uid();
+    update((s) => { const ws = s.workouts || (s.workouts = structuredClone(DEFAULT_WORKOUTS)); ws.push({ id, name: 'New Workout', tag: 'Custom', group: 'lower', items: [] }); });
+    openSheet(<EditWorkoutSheet workoutId={id} />);
+  };
   return (<>
-    <div className="section-title">This week&apos;s rotation</div>
-    {WORKOUTS.map((w, i) => {
+    <div className="section-title">Your workouts · tap to start, pencil to edit</div>
+    {workouts.map((w, i) => {
       const done = rot.done.has(w.id);
       const isNext = rot.next && rot.next.id === w.id;
       return (
@@ -189,18 +204,42 @@ function Picker({ go }) {
           <motion.div whileTap={{ scale: 0.985 }} className="card tight tap" style={{ display: 'flex', alignItems: 'center', gap: 12, border: isNext ? '1.5px solid var(--accent)' : undefined }} onClick={() => start(w.id)}>
             <div className="ic" style={{ background: done ? 'var(--sage-soft)' : 'var(--accent-soft)', color: done ? 'var(--sage)' : 'var(--accent-ink)', width: 42, height: 42, borderRadius: 12, display: 'grid', placeItems: 'center' }}><Icon name={done ? 'check' : 'dumbbell'} /></div>
             <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontWeight: 800 }}>{w.name} {isNext && <Pill tone="accent">Next</Pill>}</div><div className="small muted">{w.tag} · {w.items.length} exercises</div></div>
-            <Pill tone={done ? 'sage' : 'muted'}>{done ? 'Done' : 'Start'}</Pill>
+            <button className="btn sm ghost" style={{ padding: '7px 10px' }} onClick={(e) => edit(e, w.id)}><Icon name="edit" /></button>
           </motion.div>
         </Reveal>
       );
     })}
-    <div className="hint center" style={{ marginTop: 10 }}>No fixed days — do them in any order that fits your week. Complete all four and it resets Monday.</div>
+    <button className="btn ghost block" style={{ marginTop: 4 }} onClick={newWorkout}><Icon name="plus" /> New workout</button>
+    <div className="hint center" style={{ marginTop: 10 }}>No fixed days — do them in any order that fits your week. Swap or add exercises anytime; your history stays with each exercise.</div>
   </>);
 }
 
+function RoutineCard({ routine, title, done, onToggle, tone }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="card">
+      <div className="card-title" style={{ marginBottom: open ? 12 : 0 }}>
+        <h2 style={{ fontSize: 15 }}>{routine.title} <span className="muted small" style={{ fontWeight: 600 }}>· {routine.time}</span></h2>
+        <button className="btn sm ghost" style={{ padding: '6px 10px' }} onClick={() => setOpen(!open)}>{open ? 'Hide' : 'Show'}</button>
+      </div>
+      {open && (
+        <div style={{ marginBottom: 12 }}>
+          {routine.steps.map((s, i) => (
+            <div key={i} className="row" style={{ padding: '9px 0' }}><div className="n" style={{ width: 22, fontWeight: 800, color: 'var(--muted)' }}>{i + 1}</div><div className="main"><div className="t" style={{ fontSize: 14 }}>{s.name}</div><div className="s">{s.detail}</div></div></div>
+          ))}
+          {routine.note && <div className="hint" style={{ marginTop: 8 }}>{routine.note}</div>}
+        </div>
+      )}
+      <div className={cx('check', done && 'on')} style={{ borderBottom: 0, padding: '4px 0 0' }} onClick={onToggle}><div className="box"><Icon name="check" /></div><div className="lbl">{title}</div></div>
+    </div>
+  );
+}
+
 function ActiveWorkout({ go }) {
-  const { S, active, setActive, update, openSheet, toast } = useStore();
+  const { S, active, setActive, update, openSheet, closeSheet, toast } = useStore();
   const doneCount = active.exercises.filter((e) => e.sets.some((s) => s.reps)).length;
+  const grp = active.group || 'lower';
+  const warm = WARMUPS[grp], cool = COOLDOWNS[grp];
 
   const setSet = (ei, si, field, val) => setActive((a) => { a.exercises[ei].sets[si][field] = val; return a; });
   const addSet = (ei) => setActive((a) => { const arr = a.exercises[ei].sets; arr.push({ weight: arr[arr.length - 1]?.weight || '', reps: '' }); return a; });
@@ -210,10 +249,10 @@ function ActiveWorkout({ go }) {
 
   const cancel = () => { if (confirm('Discard this workout? Nothing will be saved.')) setActive(null); };
   const finish = () => {
-    const exs = active.exercises.map((e) => ({ key: e.key, name: e.name, subName: e.subName, rir: e.rir, pain: e.pain, note: e.note,
+    const exs = active.exercises.map((e) => ({ key: e.key, rir: e.rir, pain: e.pain, note: e.note,
       sets: e.sets.filter((s) => s.reps !== '' || s.weight !== '').map((s) => ({ weight: s.weight === '' ? null : +s.weight, reps: s.reps === '' ? null : +s.reps, done: !!s.done })) }));
     if (!exs.some((e) => e.sets.some((s) => s.reps)) && !confirm('No sets logged yet — save this workout anyway?')) return;
-    const session = { id: active.id, date: active.date, type: active.type, name: active.name, exercises: exs, ab: !!active.ab, cardio: active.cardio || null, note: active.note || '' };
+    const session = { id: active.id, date: active.date, type: active.type, name: active.name, group: grp, exercises: exs, ab: !!active.ab, cardio: active.cardio || null, warmup: !!active.warmup, cooldown: !!active.cooldown, note: active.note || '' };
     update((s) => {
       s.sessions.push(session);
       exs.forEach((e) => { const mw = Math.max(0, ...e.sets.map((x) => +x.weight || 0)); if (mw) s.exState[e.key] = { weight: mw }; });
@@ -232,7 +271,10 @@ function ActiveWorkout({ go }) {
       <button className="btn sm ghost" onClick={cancel}>Cancel</button>
     </div>
 
+    {warm && <RoutineCard routine={warm} title="Warm-up completed" done={active.warmup} onToggle={() => setActive((a) => { a.warmup = !a.warmup; return a; })} />}
+
     {active.exercises.map((ex, ei) => {
+      const def = exDef(S, ex.key);
       const item = { key: ex.key, min: ex.min, max: ex.max };
       const logged = ex.sets.some((s) => s.reps);
       const prog = logged ? progression(S, item, { sets: ex.sets, rir: ex.rir, pain: ex.pain }) : progression(S, item);
@@ -241,7 +283,7 @@ function ActiveWorkout({ go }) {
       return (
         <Reveal key={ei} delay={0.03 * ei} className="card">
           <div className="card-title" style={{ alignItems: 'flex-start' }}>
-            <div><h2 style={{ fontSize: 16 }}>{ex.subName || ex.name}</h2><div className="small muted">{EX[ex.key].muscles} · target {ex.prescribed} × {ex.min}–{ex.max}{ex.perSide ? ' /side' : ''}</div></div>
+            <div><h2 style={{ fontSize: 16 }}>{def.name}</h2><div className="small muted">{def.muscles} · target {ex.prescribed} × {ex.min}–{ex.max}{ex.perSide ? ' /side' : ''}</div></div>
             <button className="btn sm ghost" style={{ padding: '6px 9px' }} onClick={() => openSheet(<ExMenuSheet idx={ei} />)}>⋯</button>
           </div>
           <div className="col-h"><span>Set</span><span>Weight ({S.profile.weightUnit})</span><span>Reps</span><span>✓</span></div>
@@ -265,10 +307,14 @@ function ActiveWorkout({ go }) {
       );
     })}
 
+    <button className="btn ghost block" style={{ marginBottom: 15 }} onClick={() => openSheet(<ExercisePickerSheet title="Add exercise to today" onPick={(k) => { addExerciseToActive(S, setActive, k); closeSheet(); }} />)}><Icon name="plus" /> Add exercise</button>
+
+    {cool && <RoutineCard routine={cool} title="Stretching completed" done={active.cooldown} onToggle={() => setActive((a) => { a.cooldown = !a.cooldown; return a; })} />}
+
     <div className="card">
       <div className="card-title"><h2 style={{ fontSize: 15 }}>Add-ons</h2></div>
       <div className={cx('check', active.ab && 'on')} onClick={() => setActive((a) => { a.ab = !a.ab; return a; })}><div className="box"><Icon name="check" /></div><div className="lbl">Ab circuit</div><div className="sub">optional</div></div>
-      <div className={cx('check', active.cardio && 'on')} onClick={() => openSheet(<CardioSheet mode="active" />)}><div className="box"><Icon name="check" /></div><div className="lbl">Cardio {active.cardio && `— ${(CARDIO_TYPES.find((c) => c.id === active.cardio.type) || {}).name} ${active.cardio.duration || ''}${active.cardio.duration ? 'min' : ''}`}</div><div className="sub">tap to add</div></div>
+      <div className={cx('check', active.cardio && 'on')} onClick={() => openSheet(<CardioSheet mode="active" />)}><div className="box"><Icon name="check" /></div><div className="lbl">Cardio {active.cardio && `— ${(CARDIO_TYPES.find((c) => c.id === active.cardio.type) || {}).name} ${active.cardio.duration || ''}${active.cardio.duration ? 'min' : ''}`}</div><div className="sub">StairMaster / Treadmill · tap to add</div></div>
       <div className="field" style={{ marginTop: 12 }}><label>Session notes</label><textarea value={active.note} onChange={(e) => setActive((a) => { a.note = e.target.value; return a; })} placeholder="How did it feel?" /></div>
     </div>
     <motion.button whileTap={{ scale: 0.98 }} className="btn primary block" style={{ marginBottom: 8 }} onClick={finish}><Icon name="check" /> Finish &amp; save workout</motion.button>
@@ -444,7 +490,9 @@ function ProgMeasure() {
 }
 function ProgStrength() {
   const { S, openSheet } = useStore();
-  const keys = [...new Set(WORKOUTS.flatMap((w) => w.items.map((i) => i.key)))].filter((k) => lastPerf(S, k));
+  const templateKeys = getWorkouts(S).flatMap((w) => w.items.map((i) => i.key));
+  const sessionKeys = S.sessions.flatMap((s) => (s.exercises || []).map((e) => e.key));
+  const keys = [...new Set([...templateKeys, ...sessionKeys])].filter((k) => lastPerf(S, k));
   if (!keys.length) return <div className="empty"><span className="em">🏋️</span>No strength history yet.<div className="hint" style={{ marginTop: 8 }}>Finish a workout and your lifts will show up here.</div></div>;
   return (
     <div className="card"><div className="card-title"><h2>Strength history</h2></div>
@@ -454,7 +502,7 @@ function ProgStrength() {
         return (
           <div key={k} className="row tap" onClick={() => openSheet(<ExHistorySheet exKey={k} />)}>
             <div className="ic"><Icon name="dumbbell" /></div>
-            <div className="main"><div className="t">{EX[k].name}</div><div className="s">{lastTxt} · {fmtShort(last.date)}</div></div>
+            <div className="main"><div className="t">{exDef(S, k).name}</div><div className="s">{lastTxt} · {fmtShort(last.date)}</div></div>
             <div className="end"><div className="small muted">PR</div><div style={{ fontWeight: 800 }}>{best ? best.weight : '—'}</div></div>
           </div>
         );

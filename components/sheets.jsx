@@ -3,14 +3,14 @@ import { useState } from 'react';
 import { useStore } from '@/lib/store';
 import { Field, Select, Icon, Sparkline, Ring, Rec, cx } from './ui';
 import {
-  today, uid, round1, fmtDay, fmtShort, wt,
-  EX, WORKOUTS, AB_CIRCUIT, ACTIVITY_TYPES, CARDIO_TYPES, MFIELDS,
+  today, uid, slug, round1, fmtDay, fmtShort, wt,
+  exDef, exList, getWorkouts, findItem, DEFAULT_WORKOUTS,
+  AB_CIRCUIT, ACTIVITY_TYPES, CARDIO_TYPES, MFIELDS,
   progression, allPerf, lastPerf, bestSet, topSetSeries,
-  recompScore, weekRotation, weekBundle, weekStatus, trendSummary,
+  recompScore, weekRotation, weekStatus, trendSummary,
 } from '@/lib/data';
 
 const numOr = (v) => (v === '' || v == null ? null : +v);
-const findItem = (key) => WORKOUTS.flatMap((w) => w.items).find((i) => i.key === key) || { key, min: 8, max: 10 };
 
 /* ---- quick logs --------------------------------------------------------- */
 export function WeightSheet() {
@@ -19,35 +19,26 @@ export function WeightSheet() {
   const save = () => { update((s) => { (s.daily[today()] ||= {}).weight = numOr(v); }); toast('Weight logged'); closeSheet(); };
   return (<>
     <h2>Log weight</h2><p className="sub">Weigh under similar conditions — ideally first thing.</p>
-    <Field label={`Weight (${S.profile.weightUnit})`}>
-      <input className="input" type="number" inputMode="decimal" autoFocus value={v} onChange={(e) => setV(e.target.value)} placeholder="e.g. 138.4" />
-    </Field>
+    <Field label={`Weight (${S.profile.weightUnit})`}><input className="input" type="number" inputMode="decimal" autoFocus value={v} onChange={(e) => setV(e.target.value)} placeholder="e.g. 138.4" /></Field>
     <button className="btn primary block" onClick={save}>Save</button>
   </>);
 }
-
 export function StepsSheet() {
   const { S, update, closeSheet, toast } = useStore();
   const [v, setV] = useState(S.daily[today()]?.steps ?? '');
   const save = () => { update((s) => { (s.daily[today()] ||= {}).steps = numOr(v); }); toast('Steps logged'); closeSheet(); };
   return (<>
     <h2>Log steps</h2><p className="sub">Enter today&apos;s step count from your phone or watch.</p>
-    <Field label="Steps" hint={`Target ${S.profile.stepTarget.toLocaleString()}/day — the weekly average is what matters.`}>
-      <input className="input" type="number" inputMode="numeric" autoFocus value={v} onChange={(e) => setV(e.target.value)} placeholder="e.g. 10250" />
-    </Field>
+    <Field label="Steps" hint={`Target ${S.profile.stepTarget.toLocaleString()}/day — the weekly average is what matters.`}><input className="input" type="number" inputMode="numeric" autoFocus value={v} onChange={(e) => setV(e.target.value)} placeholder="e.g. 10250" /></Field>
     <button className="btn primary block" onClick={save}>Save</button>
   </>);
 }
-
 export function CheckinSheet() {
   const { S, update, closeSheet, toast } = useStore();
   const d0 = S.daily[today()] || {};
   const [f, setF] = useState({ weight: d0.weight ?? '', steps: d0.steps ?? '', energy: d0.energy || '', sleep: d0.sleep || '', soreness: d0.soreness || '', cycle: d0.cycle || '', note: d0.note || '' });
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
-  const save = () => {
-    update((s) => { const d = (s.daily[today()] ||= {}); d.weight = numOr(f.weight); d.steps = numOr(f.steps); d.energy = f.energy; d.sleep = f.sleep; d.soreness = f.soreness; d.cycle = f.cycle; d.note = f.note; });
-    toast('Check-in saved'); closeSheet();
-  };
+  const save = () => { update((s) => { const d = (s.daily[today()] ||= {}); d.weight = numOr(f.weight); d.steps = numOr(f.steps); d.energy = f.energy; d.sleep = f.sleep; d.soreness = f.soreness; d.cycle = f.cycle; d.note = f.note; }); toast('Check-in saved'); closeSheet(); };
   return (<>
     <h2>Daily check-in</h2><p className="sub">About a minute — helps explain the ups and downs.</p>
     <div className="grid2">
@@ -62,7 +53,6 @@ export function CheckinSheet() {
     <button className="btn primary block" onClick={save}>Save check-in</button>
   </>);
 }
-
 export function ActivitySheet({ preset }) {
   const { update, closeSheet, toast } = useStore();
   const [f, setF] = useState({ type: preset || 'pilates', dur: '', int: 'Moderate', date: today(), note: '' });
@@ -80,7 +70,6 @@ export function ActivitySheet({ preset }) {
     <button className="btn primary block" onClick={save}>Save</button>
   </>);
 }
-
 function buildCardio(f) {
   const o = { type: f.type || 'stairmaster', duration: numOr(f.dur), effort: f.eff, level: numOr(f.level), speed: numOr(f.speed), incline: numOr(f.incline), distance: f.dist, note: f.note };
   Object.keys(o).forEach((k) => { if (o[k] === null || o[k] === '' || o[k] === undefined) delete o[k]; });
@@ -116,7 +105,6 @@ export function CardioSheet({ mode, preset }) {
     <button className="btn primary block" onClick={save}>Save</button>
   </>);
 }
-
 export function AbsSheet() {
   const { S, update, closeSheet, toast } = useStore();
   const [rounds, setRounds] = useState(S.daily[today()]?.abRounds || '2');
@@ -128,7 +116,6 @@ export function AbsSheet() {
     <button className="btn primary block" onClick={save}>Mark complete</button>
   </>);
 }
-
 export function MeasureSheet() {
   const { S, update, closeSheet, toast } = useStore();
   const last = S.measurements.length ? S.measurements[S.measurements.length - 1] : {};
@@ -149,37 +136,25 @@ export function MeasureSheet() {
     <h2>Measurements</h2><p className="sub">Every 2–4 weeks, same time of day. Prefilled with your last values.</p>
     <Field label="Date"><input className="input" type="date" value={f.date} onChange={set('date')} /></Field>
     <Field label={`Weight (${S.profile.weightUnit})`}><input className="input" type="number" inputMode="decimal" value={f.weight} onChange={set('weight')} /></Field>
-    {MFIELDS.map((fl) => (
-      <Field key={fl.k} label={`${fl.label} (${S.profile.measureUnit})`} hint={fl.hint}>
-        <input className="input" type="number" inputMode="decimal" value={f[fl.k]} onChange={set(fl.k)} />
-      </Field>
-    ))}
+    {MFIELDS.map((fl) => <Field key={fl.k} label={`${fl.label} (${S.profile.measureUnit})`} hint={fl.hint}><input className="input" type="number" inputMode="decimal" value={f[fl.k]} onChange={set(fl.k)} /></Field>)}
     <button className="btn primary block" onClick={save}>Save measurements</button>
   </>);
 }
-
 function compressImage(file, max = 720, q = 0.62) {
   return new Promise((resolve) => {
     const r = new FileReader();
-    r.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        let { width: w, height: h } = img;
-        if (w > h && w > max) { h = (h * max) / w; w = max; } else if (h > max) { w = (w * max) / h; h = max; }
-        const c = document.createElement('canvas'); c.width = w; c.height = h;
-        c.getContext('2d').drawImage(img, 0, 0, w, h);
-        resolve(c.toDataURL('image/jpeg', q));
-      };
-      img.src = r.result;
-    };
+    r.onload = () => { const img = new Image(); img.onload = () => {
+      let { width: w, height: h } = img;
+      if (w > h && w > max) { h = (h * max) / w; w = max; } else if (h > max) { w = (w * max) / h; h = max; }
+      const c = document.createElement('canvas'); c.width = w; c.height = h; c.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(c.toDataURL('image/jpeg', q));
+    }; img.src = r.result; };
     r.readAsDataURL(file);
   });
 }
 export function PhotoSheet() {
   const { photos, savePhotos, closeSheet, toast } = useStore();
-  const [view, setView] = useState('Front');
-  const [date, setDate] = useState(today());
-  const [url, setUrl] = useState(null);
+  const [view, setView] = useState('Front'); const [date, setDate] = useState(today()); const [url, setUrl] = useState(null);
   const onFile = async (e) => { const file = e.target.files?.[0]; if (!file) return; setUrl(await compressImage(file)); };
   const save = () => { if (!url) return; if (savePhotos([...photos, { id: uid(), date, view, dataUrl: url }])) { toast('Photo saved'); closeSheet(); } };
   return (<>
@@ -193,14 +168,12 @@ export function PhotoSheet() {
 }
 export function PhotoViewSheet({ id }) {
   const { photos, savePhotos, closeSheet, toast } = useStore();
-  const p = photos.find((x) => x.id === id);
-  if (!p) return null;
+  const p = photos.find((x) => x.id === id); if (!p) return null;
   const del = () => { if (!confirm('Delete this photo?')) return; savePhotos(photos.filter((x) => x.id !== id)); toast('Photo deleted'); closeSheet(); };
   return (<>
     <h2>{p.view}</h2><p className="sub">{fmtDay(p.date)}</p>
     <img src={p.dataUrl} alt="" style={{ width: '100%', borderRadius: 14 }} />
-    <div className="spacer" />
-    <button className="btn danger block" onClick={del}>Delete photo</button>
+    <div className="spacer" /><button className="btn danger block" onClick={del}>Delete photo</button>
     <div className="spacer" /><button className="btn ghost block" onClick={closeSheet}>Close</button>
   </>);
 }
@@ -209,8 +182,7 @@ export function PhotoViewSheet({ id }) {
 function suppByTime(list) {
   const order = { Morning: 0, Afternoon: 1, Evening: 2, Anytime: 3 };
   const groups = {};
-  list.filter((s) => s.active).sort((a, b) => (order[a.time] - order[b.time]) || (a.order - b.order))
-    .forEach((s) => { (groups[s.time || 'Anytime'] ||= []).push(s); });
+  list.filter((s) => s.active).sort((a, b) => (order[a.time] - order[b.time]) || (a.order - b.order)).forEach((s) => { (groups[s.time || 'Anytime'] ||= []).push(s); });
   return groups;
 }
 export function SuppQuickSheet() {
@@ -224,13 +196,8 @@ export function SuppQuickSheet() {
   return (<>
     <h2>Supplements</h2><p className="sub">{fmtDay(today())}</p>
     {active.length ? Object.keys(groups).map((tm) => (
-      <div key={tm}>
-        <div className="small muted" style={{ margin: '6px 2px 2px', fontWeight: 800 }}>{tm}</div>
-        {groups[tm].map((s) => (
-          <div key={s.id} className={cx('check', log[s.id] && 'on')} onClick={() => toggle(s.id)}>
-            <div className="box"><Icon name="check" /></div><div className="lbl">{s.name}{s.dose && <span className="sub"> {s.dose}</span>}</div>
-          </div>
-        ))}
+      <div key={tm}><div className="small muted" style={{ margin: '6px 2px 2px', fontWeight: 800 }}>{tm}</div>
+        {groups[tm].map((s) => <div key={s.id} className={cx('check', log[s.id] && 'on')} onClick={() => toggle(s.id)}><div className="box"><Icon name="check" /></div><div className="lbl">{s.name}{s.dose && <span className="sub"> {s.dose}</span>}</div></div>)}
       </div>
     )) : <div className="empty small">No supplements yet.</div>}
     <div className="btn-row" style={{ marginTop: 12 }}><button className="btn sm" onClick={all}>Mark all</button><button className="btn sm ghost" onClick={clear}>Clear</button></div>
@@ -247,8 +214,7 @@ export function SuppManageSheet() {
     {S.supplements.slice().sort((a, b) => a.order - b.order).map((s) => (
       <div key={s.id} className="row"><div className="ic"><Icon name="pill" /></div>
         <div className="main"><div className="t" style={{ opacity: s.active ? 1 : 0.5 }}>{s.name}</div><div className="s">{s.time || 'Anytime'}{s.dose ? ' · ' + s.dose : ''}</div></div>
-        <div className="end"><button className="btn sm ghost" onClick={() => pause(s.id)}>{s.active ? 'Pause' : 'Resume'}</button></div>
-      </div>
+        <div className="end"><button className="btn sm ghost" onClick={() => pause(s.id)}>{s.active ? 'Pause' : 'Resume'}</button></div></div>
     ))}
     <div className="hairline" />
     <div className="small muted" style={{ fontWeight: 800, marginBottom: 8 }}>Add supplement</div>
@@ -300,29 +266,123 @@ export function ProfileSheet() {
   </>);
 }
 
-/* ---- exercise menu / history / library ---------------------------------- */
+/* ---- EXERCISE DATABASE picker + custom creator -------------------------- */
+export function ExercisePickerSheet({ title = 'Add exercise', onPick, allowCustom = true }) {
+  const { S, openSheet } = useStore();
+  const [q, setQ] = useState('');
+  const [grp, setGrp] = useState('all');
+  const list = exList(S).filter((e) => (grp === 'all' || e.group === grp) &&
+    (!q || e.name.toLowerCase().includes(q.toLowerCase()) || (e.muscles || '').toLowerCase().includes(q.toLowerCase())))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  return (<>
+    <h2>{title}</h2><p className="sub">Search the exercise database — tracking history follows each exercise.</p>
+    <input className="input" placeholder="Search exercises…" value={q} onChange={(e) => setQ(e.target.value)} autoFocus />
+    <div className="seg" style={{ margin: '12px 0' }}>
+      {[['all', 'All'], ['lower', 'Lower'], ['upper', 'Upper'], ['core', 'Core']].map(([id, l]) => <button key={id} className={grp === id ? 'on' : ''} onClick={() => setGrp(id)}>{l}</button>)}
+    </div>
+    {allowCustom && <button className="btn sm block" style={{ marginBottom: 10 }} onClick={() => openSheet(<CustomExerciseSheet onCreate={(k) => onPick(k)} />)}><Icon name="plus" /> Create custom exercise</button>}
+    <div style={{ maxHeight: '46vh', overflowY: 'auto', margin: '0 -4px' }}>
+      {list.map((e) => (
+        <div key={e.key} className="row tap" style={{ padding: '11px 4px' }} onClick={() => onPick(e.key)}>
+          <div className="ic"><Icon name="dumbbell" /></div>
+          <div className="main"><div className="t">{e.name}{e.custom && <span className="pill muted" style={{ marginLeft: 6 }}>custom</span>}</div><div className="s">{e.muscles}</div></div>
+          <div className="end muted" style={{ fontSize: 20 }}>＋</div>
+        </div>
+      ))}
+      {!list.length && <div className="empty small">No matches. Try “Create custom exercise”.</div>}
+    </div>
+  </>);
+}
+export function CustomExerciseSheet({ onCreate }) {
+  const { update, toast } = useStore();
+  const [f, setF] = useState({ name: '', group: 'lower', muscles: '' });
+  const create = () => {
+    if (!f.name.trim()) { toast('Enter a name'); return; }
+    const key = slug(f.name);
+    update((s) => { (s.customExercises ||= {})[key] = { name: f.name.trim(), group: f.group, cat: f.group === 'lower' ? 'dumbbell' : 'upper', muscles: f.muscles, cues: [], subs: [] }; });
+    toast('Exercise created');
+    onCreate && onCreate(key);
+  };
+  return (<>
+    <h2>Create custom exercise</h2><p className="sub">It&apos;s saved to your database and tracks like any other.</p>
+    <Field label="Name"><input className="input" autoFocus value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="e.g. Cable Pull-Through" /></Field>
+    <Field label="Muscle group"><Select value={f.group} onChange={(e) => setF({ ...f, group: e.target.value })} options={[['lower', 'Lower / Glutes'], ['upper', 'Upper Body'], ['core', 'Core']]} /></Field>
+    <Field label="Target muscles (optional)"><input className="input" value={f.muscles} onChange={(e) => setF({ ...f, muscles: e.target.value })} placeholder="e.g. Glutes, hamstrings" /></Field>
+    <button className="btn primary block" onClick={create}>Create &amp; add</button>
+  </>);
+}
+
+/* ---- EDIT WORKOUT (template) -------------------------------------------- */
+export function EditWorkoutSheet({ workoutId }) {
+  const { S, update, openSheet, closeSheet, toast } = useStore();
+  const w = getWorkouts(S).find((x) => x.id === workoutId);
+  if (!w) return null;
+  const mut = (fn) => update((s) => { const ws = (s.workouts ||= structuredClone(DEFAULT_WORKOUTS)); const wk = ws.find((x) => x.id === workoutId); if (wk) fn(wk, ws); });
+  const move = (i, dir) => mut((wk) => { const j = i + dir; if (j < 0 || j >= wk.items.length) return; [wk.items[i], wk.items[j]] = [wk.items[j], wk.items[i]]; });
+  const remove = (i) => mut((wk) => { wk.items.splice(i, 1); });
+  const setField = (i, k, v) => mut((wk) => { wk.items[i][k] = v === '' ? undefined : +v; });
+  const addExercise = (key) => { mut((wk) => { wk.items.push({ key, sets: 3, min: 8, max: 10 }); }); openSheet(<EditWorkoutSheet workoutId={workoutId} />); };
+  const swap = (i, key) => { mut((wk) => { wk.items[i].key = key; }); openSheet(<EditWorkoutSheet workoutId={workoutId} />); };
+  const del = () => { if (!confirm('Delete this workout? (Your logged history is kept.)')) return; update((s) => { s.workouts = (s.workouts || structuredClone(DEFAULT_WORKOUTS)).filter((x) => x.id !== workoutId); }); toast('Workout deleted'); closeSheet(); };
+  return (<>
+    <h2>Edit workout</h2><p className="sub">Reorder, swap or add — logged history stays with each exercise.</p>
+    <Field label="Name"><input className="input" value={w.name} onChange={(e) => mut((wk) => { wk.name = e.target.value; })} /></Field>
+    <Field label="Type — sets its warm-up &amp; cooldown"><Select value={w.group || 'lower'} onChange={(e) => mut((wk) => { wk.group = e.target.value; })} options={[['lower', 'Lower body'], ['upper', 'Upper body']]} /></Field>
+    <div className="section-title" style={{ marginLeft: 0 }}>Exercises</div>
+    {w.items.map((it, i) => (
+      <div key={i} className="card tight" style={{ marginBottom: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+          <div style={{ flex: 1, fontWeight: 700 }}>{exDef(S, it.key).name}</div>
+          <button className="btn sm ghost" style={{ padding: '6px 9px' }} onClick={() => move(i, -1)}>↑</button>
+          <button className="btn sm ghost" style={{ padding: '6px 9px' }} onClick={() => move(i, 1)}>↓</button>
+          <button className="btn sm ghost danger" style={{ padding: '6px 9px' }} onClick={() => remove(i)}>✕</button>
+        </div>
+        <div className="grid3">
+          <Field label="Sets"><input className="input" type="number" value={it.sets ?? ''} onChange={(e) => setField(i, 'sets', e.target.value)} /></Field>
+          <Field label="Min reps"><input className="input" type="number" value={it.min ?? ''} onChange={(e) => setField(i, 'min', e.target.value)} /></Field>
+          <Field label="Max reps"><input className="input" type="number" value={it.max ?? ''} onChange={(e) => setField(i, 'max', e.target.value)} /></Field>
+        </div>
+        <button className="btn sm ghost block" onClick={() => openSheet(<ExercisePickerSheet title="Swap exercise" onPick={(k) => swap(i, k)} />)}>Swap exercise</button>
+      </div>
+    ))}
+    <button className="btn block" onClick={() => openSheet(<ExercisePickerSheet title="Add exercise" onPick={(k) => addExercise(k)} />)}><Icon name="plus" /> Add exercise</button>
+    <div className="spacer" />
+    <button className="btn primary block" onClick={() => { toast('Workout saved'); closeSheet(); }}>Done</button>
+    <div className="spacer" />
+    <button className="btn ghost danger block" onClick={del}>Delete workout</button>
+  </>);
+}
+
+/* ---- exercise menu (in-session swap) / history / library ---------------- */
 export function ExMenuSheet({ idx }) {
-  const { active, setActive, closeSheet } = useStore();
+  const { S, active, setActive, closeSheet, openSheet } = useStore();
   const ex = active.exercises[idx];
-  const e = EX[ex.key];
-  const subs = e.subs.map((s) => (EX[s] ? [s, EX[s].name] : [s, s]));
-  const doSub = (v) => { setActive((a) => { a.exercises[idx].subName = EX[v] ? EX[v].name : v; return a; }); closeSheet(); };
-  const undo = () => { setActive((a) => { a.exercises[idx].subName = null; return a; }); closeSheet(); };
+  const e = exDef(S, ex.key);
+  const subs = (e.subs || []).map((s) => [s, exDef(S, s).name]);
+  const swapTo = (key) => {
+    setActive((a) => {
+      const slot = a.exercises[idx];
+      const prev = lastPerf(S, key);
+      const prevW = prev ? Math.max(...prev.ex.sets.filter((s) => s.reps).map((s) => +s.weight || 0)) : (S.exState[key]?.weight || '');
+      slot.key = key;
+      slot.sets = slot.sets.map(() => ({ weight: prevW || '', reps: '' }));
+      slot.pain = 'none';
+      return a;
+    });
+    closeSheet();
+  };
   const setPain = (v) => setActive((a) => { a.exercises[idx].pain = v; return a; });
   const [note, setNote] = useState(ex.note || '');
   const done = () => { setActive((a) => { a.exercises[idx].note = note; return a; }); closeSheet(); };
   return (<>
-    <h2>{ex.subName || ex.name}</h2><p className="sub">Adjust this exercise</p>
-    <Field label="Substitute with">
-      <div className="chips">
-        {subs.map(([v, l]) => <button key={v} className="chip" onClick={() => doSub(v)}>{l}</button>)}
-        {ex.subName && <button className="chip on" onClick={undo}>↺ {ex.name}</button>}
-      </div>
+    <h2>{e.name}</h2><p className="sub">Swap keeps each exercise&apos;s own history</p>
+    <Field label="Quick swap">
+      <div className="chips">{subs.map(([v, l]) => <button key={v} className="chip" onClick={() => swapTo(v)}>{l}</button>)}</div>
+      <button className="btn sm ghost block" style={{ marginTop: 10 }} onClick={() => openSheet(<ExercisePickerSheet title="Swap exercise" onPick={(k) => swapTo(k)} />)}>Browse all exercises →</button>
     </Field>
+    <div className="hint" style={{ marginBottom: 14 }}>Swapping logs under the new exercise — the one you swap out keeps all its past data and returns intact if you switch back.</div>
     <Field label="Pain / discomfort" hint="Pain is a signal to stop or swap — not to push through.">
-      <div className="chips">{[['none', 'None'], ['mild', 'Mild'], ['pain', 'Pain'], ['stop', 'Stop']].map(([v, l]) => (
-        <button key={v} className={cx('chip', ex.pain === v && 'on')} onClick={() => setPain(v)}>{l}</button>
-      ))}</div>
+      <div className="chips">{[['none', 'None'], ['mild', 'Mild'], ['pain', 'Pain'], ['stop', 'Stop']].map(([v, l]) => <button key={v} className={cx('chip', ex.pain === v && 'on')} onClick={() => setPain(v)}>{l}</button>)}</div>
     </Field>
     <Field label="Notes"><textarea value={note} onChange={(e2) => setNote(e2.target.value)} placeholder="e.g. felt strong, tweak seat height" /></Field>
     <button className="btn primary block" onClick={done}>Done</button>
@@ -331,11 +391,11 @@ export function ExMenuSheet({ idx }) {
 
 export function ExHistorySheet({ exKey }) {
   const { S, closeSheet } = useStore();
-  const e = EX[exKey];
+  const e = exDef(S, exKey);
   const all = allPerf(S, exKey).slice().reverse();
   const best = bestSet(S, exKey);
   const series = topSetSeries(S, exKey);
-  const item = findItem(exKey);
+  const item = findItem(S, exKey);
   const prog = progression(S, item);
   return (<>
     <h2>{e.name}</h2><p className="sub">{e.muscles}</p>
@@ -357,35 +417,33 @@ export function ExHistorySheet({ exKey }) {
 }
 
 export function LibrarySheet() {
-  const { openSheet, closeSheet } = useStore();
+  const { S, openSheet, closeSheet } = useStore();
   return (<>
-    <h2>Exercise Library</h2><p className="sub">Form cues, target muscles &amp; swaps</p>
-    {WORKOUTS.map((w) => (
+    <h2>Exercise Library</h2><p className="sub">Your workouts, form cues &amp; swaps</p>
+    {getWorkouts(S).map((w) => (
       <div key={w.id}>
         <div className="section-title" style={{ marginLeft: 0 }}>{w.name}</div>
         {w.items.map((it) => (
           <div key={it.key} className="row tap" onClick={() => openSheet(<ExInfoSheet exKey={it.key} />)}>
             <div className="ic"><Icon name="dumbbell" /></div>
-            <div className="main"><div className="t">{EX[it.key].name}</div><div className="s">{it.sets}×{it.min}–{it.max}{it.perSide ? ' /side' : ''} · {EX[it.key].muscles}</div></div>
+            <div className="main"><div className="t">{exDef(S, it.key).name}</div><div className="s">{it.sets}×{it.min}–{it.max}{it.perSide ? ' /side' : ''} · {exDef(S, it.key).muscles}</div></div>
             <div className="end muted">›</div>
           </div>
         ))}
       </div>
     ))}
-    <div className="hint" style={{ margin: '12px 0' }}>Cable kickbacks are intentionally left out — they tend to aggravate the lower back.</div>
+    <button className="btn sm ghost block" style={{ margin: '10px 0' }} onClick={() => openSheet(<ExercisePickerSheet title="Browse exercise database" onPick={(k) => openSheet(<ExInfoSheet exKey={k} />)} allowCustom={false} />)}>Browse full exercise database →</button>
     <button className="btn block" onClick={closeSheet}>Close</button>
   </>);
 }
 export function ExInfoSheet({ exKey }) {
-  const { closeSheet } = useStore();
-  const e = EX[exKey];
-  const subs = e.subs.map((s) => (EX[s] ? EX[s].name : s));
+  const { S, closeSheet } = useStore();
+  const e = exDef(S, exKey);
+  const subs = (e.subs || []).map((s) => exDef(S, s).name);
   return (<>
     <h2>{e.name}</h2><p className="sub">{e.muscles}</p>
-    <div className="card tight"><div className="small muted" style={{ fontWeight: 800, marginBottom: 6 }}>Form cues</div>
-      <ul className="hint">{e.cues.map((c) => <li key={c}>{c}</li>)}</ul></div>
-    <div className="card tight"><div className="small muted" style={{ fontWeight: 800, marginBottom: 6 }}>Swaps if needed</div>
-      <div className="chips">{subs.map((s) => <span key={s} className="chip">{s}</span>)}</div></div>
+    {e.cues && e.cues.length > 0 && <div className="card tight"><div className="small muted" style={{ fontWeight: 800, marginBottom: 6 }}>Form cues</div><ul className="hint">{e.cues.map((c) => <li key={c}>{c}</li>)}</ul></div>}
+    {subs.length > 0 && <div className="card tight"><div className="small muted" style={{ fontWeight: 800, marginBottom: 6 }}>Swaps if needed</div><div className="chips">{subs.map((s) => <span key={s} className="chip">{s}</span>)}</div></div>}
     <div className="hint">If a movement causes pain, stop or substitute — pain isn&apos;t something to push through.</div>
     <div className="spacer" /><button className="btn block" onClick={closeSheet}>Close</button>
   </>);
@@ -394,12 +452,9 @@ export function ExInfoSheet({ exKey }) {
 /* ---- weekly review + finish summary ------------------------------------- */
 export function ReviewSheet() {
   const { S, closeSheet } = useStore();
-  const sc = recompScore(S);
-  const b = sc.bundle;
-  const status = weekStatus(S, b);
-  const t = trendSummary(S);
+  const sc = recompScore(S); const b = sc.bundle; const status = weekStatus(S, b); const t = trendSummary(S);
   const pain = b.sessions.some((s) => (s.exercises || []).some((e) => e.pain && e.pain !== 'none'));
-  const progressed = b.sessions.some((s) => (s.exercises || []).some((e) => { const it = findItem(e.key); return e.sets.filter((x) => x.reps).length && e.sets.filter((x) => x.reps).every((x) => +x.reps >= it.max); }));
+  const progressed = b.sessions.some((s) => (s.exercises || []).some((e) => { const it = findItem(S, e.key); return e.sets.filter((x) => x.reps).length && e.sets.filter((x) => x.reps).every((x) => +x.reps >= it.max); }));
   const Q = ({ label, val }) => <><div className="metric"><div className="lbl"><div className="t">{label}</div></div><div className="val">{val}</div></div><div className="hairline" /></>;
   return (<>
     <h2>Weekly Review</h2><p className="sub">{fmtShort(b.monday)}–{fmtShort(b.dates[6])}</p>
@@ -426,11 +481,9 @@ export function ReviewSheet() {
     <button className="btn block" onClick={closeSheet}>Close</button>
   </>);
 }
-
 export function FinishSummary({ session }) {
   const { S, closeSheet } = useStore();
-  const sc = recompScore(S);
-  const rot = weekRotation(S);
+  const sc = recompScore(S); const rot = weekRotation(S);
   return (<>
     <h2>Workout saved 🎉</h2><p className="sub">{session.name} · {fmtDay(session.date)}</p>
     <div className="card score-card">
@@ -440,7 +493,7 @@ export function FinishSummary({ session }) {
       </div>
     </div>
     <div className="section-title" style={{ marginLeft: 0 }}>Next-session recommendations</div>
-    {session.exercises.map((e, i) => <div key={i} style={{ marginBottom: 10 }}><div className="small" style={{ fontWeight: 700, margin: '0 2px 5px' }}>{e.subName || e.name}</div><Rec prog={progression(S, findItem(e.key), e)} /></div>)}
+    {session.exercises.map((e, i) => <div key={i} style={{ marginBottom: 10 }}><div className="small" style={{ fontWeight: 700, margin: '0 2px 5px' }}>{exDef(S, e.key).name}</div><Rec prog={progression(S, findItem(S, e.key), e)} /></div>)}
     <div className="spacer" /><button className="btn primary block" onClick={closeSheet}>Done</button>
   </>);
 }
