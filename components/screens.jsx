@@ -67,7 +67,7 @@ export function Home({ go }) {
       <div className="hero-head">for you<span>{first ? ` · hi ${first}` : ' · today'}</span></div>
       <div className="hero-body">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.2, 0.8, 0.2, 1] }}>
-          <span className="hero-kicker">recomp score {sc.total}/100</span>
+          <span className="hero-kicker">weekly recomp score {sc.total}/100</span>
           <button className="hero-word lead" onClick={() => go('gym')}>gym</button>
           <div className="hero-desc">{leadDesc}</div>
           <div className="hero-meta">{leadMeta}</div>
@@ -114,14 +114,15 @@ export function Dashboard({ go }) {
         <Orb total={sc.total} />
       </div>
       <Reveal delay={0.05} className="card">
+        <div className="card-title"><h2>This week&apos;s score</h2><span className="muted small">adds up over the whole week</span></div>
         <div className="breakdown">
           {sc.parts.map((p) => (
             <div key={p.key} className="bd-item"><span className="em">{p.icon}</span>
-              <div className="bd-main"><div className="t">{p.key} · {p.got}/{p.max}</div><Bar pct={p.got / p.max} /></div>
+              <div className="bd-main"><div className="t">{p.key} <span className="muted small" style={{ fontWeight: 600 }}>· {p.detail}</span></div><Bar pct={p.got / p.max} /></div>
             </div>
           ))}
         </div>
-        <div className="hint center" style={{ marginTop: 15 }}>Focused on the habits you control — not whether the scale moved overnight.</div>
+        <div className="hint center" style={{ marginTop: 15 }}>A weekly total — spread these across the week, not all in one day. Focused on the habits you control, not the overnight scale.</div>
       </Reveal>
 
       <Reveal delay={0.1} className="card">
@@ -155,7 +156,7 @@ export function Dashboard({ go }) {
         <div className="btn-row">
           <button className="btn sm" onClick={() => openSheet(<WeightSheet />)}><Icon name="scale" /> Weight</button>
           <button className="btn sm" onClick={() => openSheet(<StepsSheet />)}><Icon name="walk" /> Steps</button>
-          <button className="btn sm" onClick={() => openSheet(<SuppQuickSheet />)}>❤️ {suppToday.total ? `${suppToday.taken}/${suppToday.total}` : 'Supps'}</button>
+          <button className={cx('btn sm', suppToday.taken > 0 && 'sage')} onClick={() => openSheet(<SuppQuickSheet />)}>❤️ Supps {suppToday.total ? (suppToday.taken > 0 ? '✓' : '') : ''}</button>
         </div>
         <div className="spacer" /><button className="btn ghost sm block" onClick={() => openSheet(<CheckinSheet />)}><Icon name="clip" /> Full daily check-in</button>
       </Reveal>
@@ -171,7 +172,7 @@ export function Dashboard({ go }) {
         <div className="tiles">
           <div className="tile g-cyan"><div className="k"><Icon name="stairs" /> StairMaster</div><div className="v">{b.stair}<small> sess</small></div></div>
           <div className="tile g-blue"><div className="k"><Icon name="walk" /> Treadmill</div><div className="v">{b.tread}<small> sess</small></div></div>
-          <div className="tile g-pink"><div className="k">❤️ Supplements</div><div className="v">{b.supp.pct}<small>%</small></div></div>
+          <div className="tile g-pink"><div className="k">❤️ Supplement days</div><div className="v">{b.supp.days}<small>/{b.supp.possibleDays} days</small></div></div>
           <div className="tile g-gold"><div className="k"><Icon name="scale" /> Avg weight</div><div className="v">{b.avgWeight ? round1(b.avgWeight) : '—'}<small> {b.avgWeight ? S.profile.weightUnit : ''}</small></div></div>
         </div>
       </Reveal>

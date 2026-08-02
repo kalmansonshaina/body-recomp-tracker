@@ -596,7 +596,7 @@ export function ReviewSheet() {
       <Q label="Avg daily steps" val={b.stepAvg ? b.stepAvg.toLocaleString() : '—'} />
       <Q label="StairMaster" val={`${b.stair}`} />
       <Q label="Treadmill" val={`${b.tread}`} />
-      <Q label="Supplement adherence" val={`${b.supp.pct}%`} />
+      <Q label="Days took supplements" val={b.supp.possibleDays ? `${b.supp.days}/${b.supp.possibleDays}` : '—'} />
       <Q label="Weekly avg weight" val={b.avgWeight ? wt(S, b.avgWeight) : '—'} />
       <Q label="Weight trend" val={t.delta != null ? `${t.delta <= 0 ? '▼' : '▲'} ${Math.abs(t.delta)} ${S.profile.weightUnit}/wk` : '—'} />
       <Q label="Lifts progressed" val={progressed ? 'Yes 💪' : 'Held steady'} />

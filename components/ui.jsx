@@ -72,7 +72,7 @@ export function Orb({ total }) {
       <motion.div className="glow2" animate={{ scale: [0.98, 1.08, 0.98], opacity: [0.7, 1, 0.7] }} transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }} />
       <div className="score">
         <b><CountUp value={total} /><em>/100</em></b>
-        <span>Body Recomp Score</span>
+        <span>Weekly Recomp Score</span>
       </div>
     </motion.div>
   );
