@@ -4,7 +4,7 @@ import { useStore } from '@/lib/store';
 import { Field, Select, Icon, Sparkline, Ring, Rec, cx } from './ui';
 import {
   today, uid, slug, round1, fmtDay, fmtShort, wt,
-  exDef, exList, getWorkouts, findItem, DEFAULT_WORKOUTS,
+  exDef, exList, getWorkouts, findItem, sessionToActive, DEFAULT_WORKOUTS,
   AB_CIRCUIT, ACTIVITY_TYPES, CARDIO_TYPES, MFIELDS,
   progression, allPerf, lastPerf, bestSet, topSetSeries,
   recompScore, weekRotation, weekStatus, trendSummary,
@@ -148,6 +148,65 @@ export function EntrySheet({ entry }) {
     {entry.kind === 'act' && <button className="btn block" onClick={() => openSheet(<ActivitySheet edit={entry} />)}><Icon name="edit" /> Edit class</button>}
     <div className="spacer" />
     <button className="btn ghost danger block" onClick={del}>Delete entry</button>
+    <div className="spacer" /><button className="btn ghost block" onClick={closeSheet}>Close</button>
+  </>);
+}
+
+/* ---- logged workout history: view, edit, delete ------------------------- */
+export function WorkoutHistorySheet() {
+  const { S, openSheet, closeSheet } = useStore();
+  const sessions = S.sessions.slice().sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+  const counts = {}; sessions.forEach((s) => { const k = s.date + '|' + s.name; counts[k] = (counts[k] || 0) + 1; });
+  const seen = {};
+  return (<>
+    <h2>Logged workouts</h2><p className="sub">Tap a workout to view, edit or delete it.</p>
+    {sessions.length ? sessions.map((s) => {
+      const k = s.date + '|' + s.name; const dup = counts[k] > 1; seen[k] = (seen[k] || 0) + 1;
+      const exCount = (s.exercises || []).filter((e) => (e.sets || []).some((x) => x.reps != null)).length;
+      return (
+        <div key={s.id} className="row tap" onClick={() => openSheet(<SessionDetailSheet id={s.id} />)}>
+          <div className="ic"><Icon name="dumbbell" /></div>
+          <div className="main"><div className="t">{s.name}{dup && <span className="pill muted" style={{ marginLeft: 6 }}>#{seen[k]}</span>}</div><div className="s">{fmtDay(s.date)} · {exCount} exercise{exCount === 1 ? '' : 's'} logged</div></div>
+          <div className="end muted">›</div>
+        </div>
+      );
+    }) : <div className="empty small">No workouts logged yet.</div>}
+    <div className="spacer" /><button className="btn block" onClick={closeSheet}>Close</button>
+  </>);
+}
+export function SessionDetailSheet({ id }) {
+  const { S, setActive, goTab, update, openSheet, closeSheet, toast } = useStore();
+  const s = S.sessions.find((x) => x.id === id);
+  if (!s) return null;
+  const eqStr = (e) => (e.equip ? ['band', 'smith', 'belt'].filter((k) => e.equip[k]).join(' · ') : '');
+  const edit = () => { setActive(sessionToActive(S, s)); goTab('gym'); closeSheet(); };
+  const del = () => {
+    if (!confirm('Delete this workout? Its logged sets will be removed. This can’t be undone.')) return;
+    update((st) => { st.sessions = st.sessions.filter((x) => x.id !== id); });
+    toast('Workout deleted'); openSheet(<WorkoutHistorySheet />);
+  };
+  return (<>
+    <h2>{s.name}</h2><p className="sub">{fmtDay(s.date)}</p>
+    <div className="card tight">
+      {(s.exercises || []).map((e, i) => {
+        const logged = (e.sets || []).filter((x) => x.reps != null || x.weight != null);
+        const eq = eqStr(e);
+        return (
+          <div key={i} className="row" style={{ padding: '8px 0' }}>
+            <div className="main">
+              <div className="t" style={{ fontSize: 14 }}>{exDef(S, e.key).name}</div>
+              <div className="s">{logged.length ? logged.map((x) => `${x.weight ?? '–'}×${x.reps ?? '–'}`).join(', ') : 'not logged'}{eq ? ' · ' + eq : ''}{e.pain && e.pain !== 'none' ? ' · ⚠ ' + e.pain : ''}</div>
+            </div>
+          </div>
+        );
+      })}
+      {s.cardio && <div className="small muted" style={{ padding: '6px 0 0' }}>Cardio: {(CARDIO_TYPES.find((c) => c.id === s.cardio.type) || {}).name}{s.cardio.duration ? ' · ' + s.cardio.duration + ' min' : ''}</div>}
+      {s.ab && <div className="small muted" style={{ padding: '2px 0 0' }}>Ab circuit ✓</div>}
+      {s.note && <div className="small" style={{ padding: '6px 0 0' }}>{s.note}</div>}
+    </div>
+    <button className="btn block" onClick={edit}><Icon name="edit" /> Edit this workout</button>
+    <div className="spacer" />
+    <button className="btn ghost danger block" onClick={del}>Delete workout</button>
     <div className="spacer" /><button className="btn ghost block" onClick={closeSheet}>Close</button>
   </>);
 }
@@ -516,7 +575,7 @@ export function ExInfoSheet({ exKey }) {
 
 /* ---- weekly review + finish summary ------------------------------------- */
 export function ReviewSheet() {
-  const { S, closeSheet } = useStore();
+  const { S, openSheet, closeSheet } = useStore();
   const sc = recompScore(S); const b = sc.bundle; const status = weekStatus(S, b); const t = trendSummary(S);
   const pain = b.sessions.some((s) => (s.exercises || []).some((e) => e.pain && e.pain !== 'none'));
   const progressed = b.sessions.some((s) => (s.exercises || []).some((e) => { const it = findItem(S, e.key); return e.sets.filter((x) => x.reps).length && e.sets.filter((x) => x.reps).every((x) => +x.reps >= it.max); }));
@@ -531,7 +590,7 @@ export function ReviewSheet() {
       </div>
     </div>
     <div className="card">
-      <Q label="Strength workouts" val={`${b.sessions.length} / ${S.profile.strengthTarget}`} />
+      <div className="metric tap" onClick={() => openSheet(<WorkoutHistorySheet />)}><div className="lbl"><div className="t">Strength workouts</div><div className="s">tap to view, edit or delete</div></div><div className="val">{b.sessions.length} / {S.profile.strengthTarget} ›</div></div><div className="hairline" />
       <Q label="Pilates / Yoga" val={`${b.pilatesYoga.length} / ${S.profile.pilatesTarget}`} />
       <Q label="Step-goal days" val={`${b.stepDays} / 7`} />
       <Q label="Avg daily steps" val={b.stepAvg ? b.stepAvg.toLocaleString() : '—'} />

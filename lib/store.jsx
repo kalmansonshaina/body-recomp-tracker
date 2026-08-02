@@ -26,6 +26,7 @@ export function StoreProvider({ children }) {
   const [sheet, setSheet] = useState(null);
   const [toastMsg, setToastMsg] = useState('');
   const [identityOpen, setIdentityOpen] = useState(null);
+  const [navTab, setNavTab] = useState(null);
   const ready = S != null;
   const toastTimer = useRef();
 
@@ -80,14 +81,17 @@ export function StoreProvider({ children }) {
   const openSheet = useCallback((node) => setSheet(() => node), []);
   const closeSheet = useCallback(() => setSheet(null), []);
 
+  const goTab = useCallback((t) => setNavTab(t), []);
+  const clearNav = useCallback(() => setNavTab(null), []);
+
   const openIdentity = useCallback((catId, layoutId) => {
     setIdentityOpen({ catId, layoutId });
     setS((prev) => { if (!prev) return prev; const s = structuredClone(prev); if (!s.identity) s.identity = defaultIdentity(); (s.identity.daily[today()] ||= {}).read = true; return s; });
   }, []);
   const closeIdentity = useCallback(() => setIdentityOpen(null), []);
 
-  const value = { S, ready, photos, active, sheet, toastMsg, identityOpen,
-    update, setActive, savePhotos, openSheet, closeSheet, openIdentity, closeIdentity, toast, setS, setPhotos };
+  const value = { S, ready, photos, active, sheet, toastMsg, identityOpen, navTab,
+    update, setActive, savePhotos, openSheet, closeSheet, openIdentity, closeIdentity, goTab, clearNav, toast, setS, setPhotos };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

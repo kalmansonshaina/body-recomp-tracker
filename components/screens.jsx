@@ -7,12 +7,12 @@ import {
   WeightSheet, StepsSheet, CheckinSheet, ActivitySheet, CardioSheet, AbsSheet,
   MeasureSheet, PhotoSheet, PhotoViewSheet, SuppQuickSheet, SuppManageSheet,
   TargetsSheet, ProfileSheet, ExMenuSheet, ExHistorySheet, LibrarySheet, ReviewSheet, FinishSummary,
-  ExercisePickerSheet, EditWorkoutSheet, EntrySheet,
+  ExercisePickerSheet, EditWorkoutSheet, EntrySheet, WorkoutHistorySheet, SessionDetailSheet,
 } from './sheets';
 import { IdentityCollapsedCard } from './identity';
 import {
   today, uid, round1, fmtDay, fmtShort, wt, defaultState,
-  exDef, getWorkouts, workoutById, findItem, WARMUPS, COOLDOWNS, DEFAULT_WORKOUTS,
+  exDef, getWorkouts, workoutById, findItem, sessionToActive, WARMUPS, COOLDOWNS, DEFAULT_WORKOUTS,
   ACTIVITY_TYPES, CARDIO_TYPES, MFIELDS,
   weekBundle, weekRotation, weekStatus, weekDates, startOfWeek,
   recompScore, trendSummary, weighIns, rollingAvg, lastPerf, bestSet, allPerf, progression,
@@ -162,7 +162,7 @@ export function Dashboard({ go }) {
 
       <Reveal delay={0.2} className="card">
         <div className="card-title"><h2>This week</h2><span className="muted small">{fmtShort(b.monday)}–{fmtShort(b.dates[6])}</span></div>
-        <div className="metric"><div className="lbl"><div className="t">Strength workouts</div><Bar pct={b.sessions.length / S.profile.strengthTarget} /></div><div className="val">{b.sessions.length}/{S.profile.strengthTarget}</div></div>
+        <div className="metric tap" onClick={() => openSheet(<WorkoutHistorySheet />)}><div className="lbl"><div className="t">Strength workouts <span className="muted small">· tap to view/edit</span></div><Bar pct={b.sessions.length / S.profile.strengthTarget} /></div><div className="val">{b.sessions.length}/{S.profile.strengthTarget} ›</div></div>
         <div className="hairline" />
         <div className="metric"><div className="lbl"><div className="t">Pilates / Yoga</div><Bar pct={b.pilatesYoga.length / S.profile.pilatesTarget} klass="blue" /></div><div className="val">{b.pilatesYoga.length}/{S.profile.pilatesTarget}</div></div>
         <div className="hairline" />
@@ -208,28 +208,6 @@ function makeActive(S, type) {
         sets: Array.from({ length: it.sets || 3 }, () => ({ weight: prevW || '', reps: '' })), rir: 2, pain: 'none', equip: {}, note: '' };
     }),
     cardio: null, ab: false, warmup: false, cooldown: false, note: '',
-  };
-}
-// Rehydrate an already-finished session back into the editable workout view,
-// keeping every logged set/weight/rep. Used when you re-open a workout you
-// already completed today so it shows your reps instead of starting fresh.
-function sessionToActive(S, session) {
-  const w = workoutById(S, session.type);
-  const itemFor = (key) => (w?.items || []).find((it) => it.key === key) || {};
-  return {
-    id: session.id, date: session.date, type: session.type, name: session.name,
-    group: session.group || w?.group || 'lower', completed: true,
-    exercises: (session.exercises || []).map((e) => {
-      const it = itemFor(e.key);
-      const prescribed = it.sets || (e.sets?.length || 3);
-      const sets = (e.sets || []).map((s) => ({ weight: s.weight ?? '', reps: s.reps ?? '', done: !!s.done }));
-      // Exercises that weren't logged were stripped to zero sets on finish —
-      // re-seed empty rows so every exercise stays visible and editable.
-      while (sets.length < prescribed) sets.push({ weight: sets[sets.length - 1]?.weight ?? '', reps: '' });
-      return { key: e.key, min: it.min ?? 8, max: it.max ?? 12, perSide: !!it.perSide, prescribed, sets,
-        rir: e.rir ?? 2, pain: e.pain || 'none', equip: e.equip || {}, note: e.note || '' };
-    }),
-    cardio: session.cardio || null, ab: !!session.ab, warmup: !!session.warmup, cooldown: !!session.cooldown, note: session.note || '',
   };
 }
 function addExerciseToActive(S, setActive, key) {
@@ -292,6 +270,7 @@ function Picker({ go }) {
       );
     })}
     <button className="btn ghost block" style={{ marginTop: 4 }} onClick={newWorkout}><Icon name="plus" /> New workout</button>
+    <button className="btn ghost block" style={{ marginTop: 8 }} onClick={() => openSheet(<WorkoutHistorySheet />)}><Icon name="clip" /> View logged workouts</button>
     <div className="hint center" style={{ marginTop: 10 }}>No fixed days — do them in any order that fits your week. Swap or add exercises anytime; your history stays with each exercise.</div>
   </>);
 }
@@ -517,7 +496,8 @@ function WeekActivity() {
     if (r.kind === 'strength') { icon = 'dumbbell'; t = r.name; s = 'Strength · ' + s; }
     else if (r.kind === 'cardio') { icon = r.type === 'stairmaster' ? 'stairs' : 'walk'; t = (CARDIO_TYPES.find((c) => c.id === r.type) || {}).name; s = `${r.duration ? r.duration + ' min · ' : ''}${s}`; }
     else { icon = 'yoga'; t = (ACTIVITY_TYPES.find((x) => x.id === r.type) || {}).name; s = `${r.duration ? r.duration + ' min · ' : ''}${s}`; }
-    return <div key={i} className="row tap" onClick={() => openSheet(<EntrySheet entry={r} />)}><div className="ic"><Icon name={icon} /></div><div className="main"><div className="t">{t}</div><div className="s">{s}</div></div><div className="end muted">›</div></div>;
+    const open = () => openSheet(r.kind === 'strength' ? <SessionDetailSheet id={r.id} /> : <EntrySheet entry={r} />);
+    return <div key={i} className="row tap" onClick={open}><div className="ic"><Icon name={icon} /></div><div className="main"><div className="t">{t}</div><div className="s">{s}</div></div><div className="end muted">›</div></div>;
   });
 }
 

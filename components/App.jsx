@@ -48,9 +48,13 @@ function Toast() {
 }
 
 function Shell() {
-  const { ready, active } = useStore();
+  const { ready, active, navTab, clearNav } = useStore();
   const [tab, setTab] = useState('home');
   const resumed = useRef(false);
+
+  // Let sheets/screens request a tab change (e.g. "Edit" a logged workout
+  // opens it in the Gym editor from anywhere).
+  useEffect(() => { if (navTab) { setTab(navTab); clearNav(); } }, [navTab, clearNav]);
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
