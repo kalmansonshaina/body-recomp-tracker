@@ -356,3 +356,12 @@ ul.hint{padding-left:18px;line-height:1.9;margin:0}
 .id-read .lbl{font-weight:700;font-size:15px}
 .id-reflect .id-prompt{font-size:16px;font-weight:700;line-height:1.4;color:var(--ink-soft)}
 .id-fav{border:0;background:none;font-size:22px;color:var(--accent);cursor:pointer;width:34px;flex:none;line-height:1}
+
+/* Identity page: affirmation hidden until tapped (reveal pattern) */
+.id-card.collapsed{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:17px 20px}
+.id-card.collapsed .id-card-cat{margin-bottom:0}
+.id-card-hint{font-size:12px;font-weight:700;color:var(--muted);white-space:nowrap;display:inline-flex;align-items:center;gap:7px;letter-spacing:.01em}
+.id-spark{color:var(--accent-ink);font-size:13px;animation:idshimmer 2.6s ease-in-out infinite}
+@keyframes idshimmer{0%,100%{opacity:.45;transform:scale(1)}50%{opacity:1;transform:scale(1.18)}}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media (prefers-reduced-motion: reduce){.id-spark{animation:none}}

@@ -108,12 +108,14 @@ export function IdentityPage({ go }) {
       {items.map(({ cat, aff }, i) => {
         const g = gradOf(cat.id);
         return (
-          <motion.button key={cat.id} className="id-card" layoutId={`id-cat-${cat.id}`}
+          <motion.button key={cat.id} className="id-card collapsed" layoutId={`id-cat-${cat.id}`}
             style={{ background: `linear-gradient(120deg, ${g[0]}2e, ${g[1]}3a)` }}
             initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05, duration: 0.4 }}
-            whileTap={{ scale: 0.99 }} onClick={() => openIdentity(cat.id, `id-cat-${cat.id}`)}>
+            whileTap={{ scale: 0.99 }} onClick={() => openIdentity(cat.id, `id-cat-${cat.id}`)}
+            aria-label={`${cat.name}. ${aff ? aff.text : 'No affirmation yet'}. Tap to reveal.`}>
             <div className="id-card-cat">{cat.emoji} {cat.name}</div>
-            <div className="id-card-aff serif">{aff ? `“${aff.text}”` : 'Tap to add an affirmation'}</div>
+            <span className="id-card-hint">{aff ? 'tap to reveal' : 'tap to add'} <span className="id-spark">✦</span></span>
+            <span className="sr-only">{aff ? aff.text : ''}</span>
           </motion.button>
         );
       })}
