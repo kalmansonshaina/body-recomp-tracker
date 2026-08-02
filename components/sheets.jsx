@@ -386,6 +386,7 @@ export function ExMenuSheet({ idx }) {
   const setPain = (v) => setActive((a) => { a.exercises[idx].pain = v; return a; });
   const [note, setNote] = useState(ex.note || '');
   const done = () => { setActive((a) => { a.exercises[idx].note = note; return a; }); closeSheet(); };
+  const remove = () => { if (!confirm('Remove this exercise from today’s workout?')) return; setActive((a) => { a.exercises.splice(idx, 1); return a; }); closeSheet(); };
   return (<>
     <h2>{e.name}</h2><p className="sub">Swap keeps each exercise&apos;s own history</p>
     <Field label="Quick swap">
@@ -398,6 +399,8 @@ export function ExMenuSheet({ idx }) {
     </Field>
     <Field label="Notes"><textarea value={note} onChange={(e2) => setNote(e2.target.value)} placeholder="e.g. felt strong, tweak seat height" /></Field>
     <button className="btn primary block" onClick={done}>Done</button>
+    <div className="spacer" />
+    <button className="btn ghost danger block" onClick={remove}>Remove exercise from workout</button>
   </>);
 }
 

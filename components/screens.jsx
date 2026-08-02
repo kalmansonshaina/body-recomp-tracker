@@ -325,6 +325,14 @@ function ActiveWorkout({ go }) {
       <button className="btn sm ghost" onClick={cancel}>Cancel</button>
     </div>
 
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 9, margin: '-4px 2px 12px' }}>
+      <span className="small muted" style={{ fontWeight: 600 }}>Log weight in</span>
+      <div className="seg" style={{ width: 104, padding: 3 }}>
+        <button className={S.profile.weightUnit === 'kg' ? 'on' : ''} onClick={() => update((s) => { s.profile.weightUnit = 'kg'; })}>kg</button>
+        <button className={S.profile.weightUnit === 'lb' ? 'on' : ''} onClick={() => update((s) => { s.profile.weightUnit = 'lb'; })}>lb</button>
+      </div>
+    </div>
+
     {warm && <RoutineCard routine={warm} title="Warm-up completed" done={active.warmup} onToggle={() => setActive((a) => { a.warmup = !a.warmup; return a; })} />}
 
     {active.exercises.map((ex, ei) => {
