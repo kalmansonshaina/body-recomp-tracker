@@ -50,7 +50,10 @@ function Shell() {
   const [tab, setTab] = useState('home');
 
   useEffect(() => {
-    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+    if ('serviceWorker' in navigator) {
+      const BP = process.env.NEXT_PUBLIC_BASE_PATH || '';
+      navigator.serviceWorker.register(`${BP}/sw.js`, { scope: `${BP}/` }).catch(() => {});
+    }
   }, []);
 
   if (!ready) return null;

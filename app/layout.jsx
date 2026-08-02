@@ -8,14 +8,16 @@ const manrope = Manrope({
   display: 'swap',
 });
 
+const BP = process.env.NEXT_PUBLIC_BASE_PATH || '';
+
 export const metadata = {
   title: 'Body Recomp Tracker',
   description: 'Flexible body-recomposition tracker: strength, cardio, steps, weight, measurements, supplements and a weekly Body Recomp Score.',
-  manifest: '/manifest.webmanifest',
+  manifest: `${BP}/manifest.webmanifest`,
   appleWebApp: { capable: true, statusBarStyle: 'default', title: 'Recomp' },
   icons: {
-    icon: '/icons/favicon-64.png',
-    apple: '/icons/apple-touch-icon.png',
+    icon: `${BP}/icons/favicon-64.png`,
+    apple: `${BP}/icons/apple-touch-icon.png`,
   },
 };
 
