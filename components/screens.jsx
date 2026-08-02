@@ -7,7 +7,7 @@ import {
   WeightSheet, StepsSheet, CheckinSheet, ActivitySheet, CardioSheet, AbsSheet,
   MeasureSheet, PhotoSheet, PhotoViewSheet, SuppQuickSheet, SuppManageSheet,
   TargetsSheet, ProfileSheet, ExMenuSheet, ExHistorySheet, LibrarySheet, ReviewSheet, FinishSummary,
-  ExercisePickerSheet, EditWorkoutSheet,
+  ExercisePickerSheet, EditWorkoutSheet, EntrySheet,
 } from './sheets';
 import { IdentityCollapsedCard } from './identity';
 import {
@@ -469,12 +469,12 @@ function suppGroups(S) {
   return g;
 }
 function WeekActivity() {
-  const { S } = useStore();
+  const { S, openSheet } = useStore();
   const b = weekBundle(S);
   const rows = [];
   b.acts.forEach((a) => rows.push({ ...a, kind: 'act' }));
   b.cardio.forEach((c) => rows.push({ ...c, kind: 'cardio' }));
-  b.sessions.forEach((s) => rows.push({ date: s.date, name: s.name, kind: 'strength' }));
+  b.sessions.forEach((s) => rows.push({ id: s.id, date: s.date, name: s.name, kind: 'strength' }));
   rows.sort((a, b2) => (a.date < b2.date ? 1 : -1));
   if (!rows.length) return <div className="empty small">Nothing logged this week yet.</div>;
   return rows.map((r, i) => {
@@ -482,7 +482,7 @@ function WeekActivity() {
     if (r.kind === 'strength') { icon = 'dumbbell'; t = r.name; s = 'Strength · ' + s; }
     else if (r.kind === 'cardio') { icon = r.type === 'stairmaster' ? 'stairs' : 'walk'; t = (CARDIO_TYPES.find((c) => c.id === r.type) || {}).name; s = `${r.duration ? r.duration + ' min · ' : ''}${s}`; }
     else { icon = 'yoga'; t = (ACTIVITY_TYPES.find((x) => x.id === r.type) || {}).name; s = `${r.duration ? r.duration + ' min · ' : ''}${s}`; }
-    return <div key={i} className="row"><div className="ic"><Icon name={icon} /></div><div className="main"><div className="t">{t}</div><div className="s">{s}</div></div></div>;
+    return <div key={i} className="row tap" onClick={() => openSheet(<EntrySheet entry={r} />)}><div className="ic"><Icon name={icon} /></div><div className="main"><div className="t">{t}</div><div className="s">{s}</div></div><div className="end muted">›</div></div>;
   });
 }
 

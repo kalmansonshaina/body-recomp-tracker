@@ -53,13 +53,19 @@ export function CheckinSheet() {
     <button className="btn primary block" onClick={save}>Save check-in</button>
   </>);
 }
-export function ActivitySheet({ preset }) {
+export function ActivitySheet({ preset, edit }) {
   const { update, closeSheet, toast } = useStore();
-  const [f, setF] = useState({ type: preset || 'pilates', dur: '', int: 'Moderate', date: today(), note: '' });
+  const [f, setF] = useState(edit
+    ? { type: edit.type || 'pilates', dur: edit.duration ?? '', int: edit.intensity || 'Moderate', date: edit.date || today(), note: edit.note || '' }
+    : { type: preset || 'pilates', dur: '', int: 'Moderate', date: today(), note: '' });
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
-  const save = () => { update((s) => s.activities.push({ id: uid(), date: f.date || today(), type: f.type, duration: numOr(f.dur), intensity: f.int, note: f.note })); toast('Class logged'); closeSheet(); };
+  const save = () => {
+    if (edit) { update((s) => { const i = s.activities.findIndex((x) => x.id === edit.id); if (i >= 0) s.activities[i] = { id: edit.id, date: f.date || edit.date, type: f.type, duration: numOr(f.dur), intensity: f.int, note: f.note }; }); toast('Class updated'); }
+    else { update((s) => s.activities.push({ id: uid(), date: f.date || today(), type: f.type, duration: numOr(f.dur), intensity: f.int, note: f.note })); toast('Class logged'); }
+    closeSheet();
+  };
   return (<>
-    <h2>Log Pilates / Yoga</h2><p className="sub">Any of these count toward your weekly class goal.</p>
+    <h2>{edit ? 'Edit class' : 'Log Pilates / Yoga'}</h2><p className="sub">Any of these count toward your weekly class goal.</p>
     <Field label="Type"><Select value={f.type} onChange={set('type')} options={ACTIVITY_TYPES.map((t) => [t.id, t.name])} /></Field>
     <div className="grid2">
       <Field label="Duration (min)"><input className="input" type="number" inputMode="numeric" value={f.dur} onChange={set('dur')} placeholder="50" /></Field>
@@ -76,19 +82,22 @@ function buildCardio(f) {
   o.type = o.type || 'stairmaster';
   return o;
 }
-export function CardioSheet({ mode, preset }) {
+export function CardioSheet({ mode, preset, edit }) {
   const active = mode === 'active';
   const { update, setActive, closeSheet, toast } = useStore();
-  const [f, setF] = useState({ type: preset || 'stairmaster', dur: '', eff: 'Moderate', level: '', speed: '', incline: '', dist: '', note: '', date: today() });
+  const [f, setF] = useState(edit
+    ? { type: edit.type || 'stairmaster', dur: edit.duration ?? '', eff: edit.effort || '', level: edit.level ?? '', speed: edit.speed ?? '', incline: edit.incline ?? '', dist: edit.distance || '', note: edit.note || '', date: edit.date || today() }
+    : { type: preset || 'stairmaster', dur: '', eff: 'Moderate', level: '', speed: '', incline: '', dist: '', note: '', date: today() });
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   const save = () => {
     const c = buildCardio(f);
     if (active) { setActive((a) => { a.cardio = c; return a; }); toast('Cardio added'); }
+    else if (edit) { update((s) => { const i = s.cardio.findIndex((x) => x.id === edit.id); if (i >= 0) s.cardio[i] = { id: edit.id, date: f.date || edit.date, ...c }; }); toast('Cardio updated'); }
     else { update((s) => s.cardio.push({ id: uid(), date: f.date || today(), ...c })); toast('Cardio logged'); }
     closeSheet();
   };
   return (<>
-    <h2>{active ? 'Add cardio to workout' : 'Log cardio'}</h2><p className="sub">Keep it moderate — it should support lifting, not fight recovery.</p>
+    <h2>{active ? 'Add cardio to workout' : edit ? 'Edit cardio' : 'Log cardio'}</h2><p className="sub">Keep it moderate — it should support lifting, not fight recovery.</p>
     <Field label="Type"><Select value={f.type} onChange={set('type')} options={CARDIO_TYPES.map((t) => [t.id, t.name])} /></Field>
     <div className="grid2">
       <Field label="Duration (min)"><input className="input" type="number" inputMode="numeric" value={f.dur} onChange={set('dur')} placeholder="15" /></Field>
@@ -105,6 +114,44 @@ export function CardioSheet({ mode, preset }) {
     <button className="btn primary block" onClick={save}>Save</button>
   </>);
 }
+export function EntrySheet({ entry }) {
+  const { update, openSheet, closeSheet, toast } = useStore();
+  const del = () => {
+    if (!confirm('Delete this entry? This can’t be undone.')) return;
+    update((s) => {
+      if (entry.kind === 'cardio') s.cardio = s.cardio.filter((x) => x.id !== entry.id);
+      else if (entry.kind === 'act') s.activities = s.activities.filter((x) => x.id !== entry.id);
+      else if (entry.kind === 'strength') s.sessions = s.sessions.filter((x) => x.id !== entry.id);
+    });
+    toast('Deleted'); closeSheet();
+  };
+  let title = '', lines = [];
+  if (entry.kind === 'cardio') {
+    title = (CARDIO_TYPES.find((c) => c.id === entry.type) || {}).name || 'Cardio';
+    if (entry.duration) lines.push(`${entry.duration} min`);
+    if (entry.level != null) lines.push(`level ${entry.level}`);
+    if (entry.speed != null) lines.push(`${entry.speed} speed`);
+    if (entry.incline != null) lines.push(`${entry.incline}% incline`);
+    if (entry.distance) lines.push(`${entry.distance}`);
+    if (entry.effort) lines.push(entry.effort);
+    if (entry.note) lines.push(entry.note);
+  } else if (entry.kind === 'act') {
+    title = (ACTIVITY_TYPES.find((a) => a.id === entry.type) || {}).name || 'Class';
+    if (entry.duration) lines.push(`${entry.duration} min`);
+    if (entry.intensity) lines.push(entry.intensity);
+    if (entry.note) lines.push(entry.note);
+  } else { title = entry.name || 'Workout'; lines.push('Strength session'); }
+  return (<>
+    <h2>{title}</h2><p className="sub">{fmtDay(entry.date)}</p>
+    <div className="card tight">{lines.length ? lines.map((l, i) => <div key={i} className="small" style={{ padding: '3px 0' }}>{l}</div>) : <div className="small muted">No extra details</div>}</div>
+    {entry.kind === 'cardio' && <button className="btn block" onClick={() => openSheet(<CardioSheet mode="standalone" edit={entry} />)}><Icon name="edit" /> Edit cardio</button>}
+    {entry.kind === 'act' && <button className="btn block" onClick={() => openSheet(<ActivitySheet edit={entry} />)}><Icon name="edit" /> Edit class</button>}
+    <div className="spacer" />
+    <button className="btn ghost danger block" onClick={del}>Delete entry</button>
+    <div className="spacer" /><button className="btn ghost block" onClick={closeSheet}>Close</button>
+  </>);
+}
+
 export function AbsSheet() {
   const { S, update, closeSheet, toast } = useStore();
   const [rounds, setRounds] = useState(S.daily[today()]?.abRounds || '2');
