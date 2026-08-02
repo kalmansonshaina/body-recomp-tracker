@@ -84,11 +84,13 @@ function buildCardio(f) {
 }
 export function CardioSheet({ mode, preset, edit }) {
   const active = mode === 'active';
-  const { update, setActive, closeSheet, toast } = useStore();
+  const { S, update, setActive, openSheet, closeSheet, toast } = useStore();
   const [f, setF] = useState(edit
     ? { type: edit.type || 'stairmaster', dur: edit.duration ?? '', eff: edit.effort || '', level: edit.level ?? '', speed: edit.speed ?? '', incline: edit.incline ?? '', dist: edit.distance || '', note: edit.note || '', date: edit.date || today() }
     : { type: preset || 'stairmaster', dur: '', eff: 'Moderate', level: '', speed: '', incline: '', dist: '', note: '', date: today() });
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  // cardio already logged today (only relevant when logging a fresh standalone entry)
+  const todays = (!active && !edit && S) ? S.cardio.filter((c) => c.date === today()) : [];
   const save = () => {
     const c = buildCardio(f);
     if (active) { setActive((a) => { a.cardio = c; return a; }); toast('Cardio added'); }
@@ -98,6 +100,19 @@ export function CardioSheet({ mode, preset, edit }) {
   };
   return (<>
     <h2>{active ? 'Add cardio to workout' : edit ? 'Edit cardio' : 'Log cardio'}</h2><p className="sub">Keep it moderate — it should support lifting, not fight recovery.</p>
+    {todays.length > 0 && (
+      <div className="card tight" style={{ marginBottom: 14 }}>
+        <div className="small muted" style={{ fontWeight: 800, marginBottom: 2 }}>Already logged today</div>
+        {todays.map((c) => (
+          <div key={c.id} className="row tap" onClick={() => openSheet(<EntrySheet entry={{ ...c, kind: 'cardio' }} />)}>
+            <div className="ic"><Icon name={c.type === 'stairmaster' ? 'stairs' : 'walk'} /></div>
+            <div className="main"><div className="t" style={{ fontSize: 14 }}>{(CARDIO_TYPES.find((x) => x.id === c.type) || {}).name}</div><div className="s">{c.duration ? c.duration + ' min' : ''}{c.effort ? (c.duration ? ' · ' : '') + c.effort : ''} · tap to edit or delete</div></div>
+            <div className="end muted">›</div>
+          </div>
+        ))}
+        <div className="hint" style={{ marginTop: 6 }}>You&apos;re all set for today — close below, or add another session.</div>
+      </div>
+    )}
     <Field label="Type"><Select value={f.type} onChange={set('type')} options={CARDIO_TYPES.map((t) => [t.id, t.name])} /></Field>
     <div className="grid2">
       <Field label="Duration (min)"><input className="input" type="number" inputMode="numeric" value={f.dur} onChange={set('dur')} placeholder="15" /></Field>
@@ -111,7 +126,8 @@ export function CardioSheet({ mode, preset, edit }) {
     <Field label="Distance / floors"><input className="input" type="text" value={f.dist} onChange={set('dist')} placeholder="optional" /></Field>
     {!active && <Field label="Date"><input className="input" type="date" value={f.date} onChange={set('date')} /></Field>}
     <Field label="Notes"><textarea value={f.note} onChange={set('note')} placeholder="optional" /></Field>
-    <button className="btn primary block" onClick={save}>Save</button>
+    <button className="btn primary block" onClick={save}>{edit ? 'Save changes' : todays.length ? 'Add another session' : 'Save'}</button>
+    {!active && <><div className="spacer" /><button className="btn ghost block" onClick={closeSheet}>{todays.length ? 'Done' : 'Cancel'}</button></>}
   </>);
 }
 export function EntrySheet({ entry }) {
