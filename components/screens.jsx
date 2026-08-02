@@ -210,6 +210,28 @@ function makeActive(S, type) {
     cardio: null, ab: false, warmup: false, cooldown: false, note: '',
   };
 }
+// Rehydrate an already-finished session back into the editable workout view,
+// keeping every logged set/weight/rep. Used when you re-open a workout you
+// already completed today so it shows your reps instead of starting fresh.
+function sessionToActive(S, session) {
+  const w = workoutById(S, session.type);
+  const itemFor = (key) => (w?.items || []).find((it) => it.key === key) || {};
+  return {
+    id: session.id, date: session.date, type: session.type, name: session.name,
+    group: session.group || w?.group || 'lower', completed: true,
+    exercises: (session.exercises || []).map((e) => {
+      const it = itemFor(e.key);
+      const prescribed = it.sets || (e.sets?.length || 3);
+      const sets = (e.sets || []).map((s) => ({ weight: s.weight ?? '', reps: s.reps ?? '', done: !!s.done }));
+      // Exercises that weren't logged were stripped to zero sets on finish —
+      // re-seed empty rows so every exercise stays visible and editable.
+      while (sets.length < prescribed) sets.push({ weight: sets[sets.length - 1]?.weight ?? '', reps: '' });
+      return { key: e.key, min: it.min ?? 8, max: it.max ?? 12, perSide: !!it.perSide, prescribed, sets,
+        rir: e.rir ?? 2, pain: e.pain || 'none', equip: e.equip || {}, note: e.note || '' };
+    }),
+    cardio: session.cardio || null, ab: !!session.ab, warmup: !!session.warmup, cooldown: !!session.cooldown, note: session.note || '',
+  };
+}
 function addExerciseToActive(S, setActive, key) {
   setActive((a) => {
     const last = lastPerf(S, key);
@@ -237,6 +259,10 @@ function Picker({ go }) {
   const rot = weekRotation(S);
   const workouts = getWorkouts(S);
   const start = (id) => {
+    // Already finished this workout today → re-open that session with its
+    // logged reps (marked complete) instead of wiping it with a fresh start.
+    const todays = S.sessions.find((s) => s.date === today() && s.type === id);
+    if (todays) { setActive(sessionToActive(S, todays)); go('gym'); return; }
     if (active && active.type !== id && !confirm('Discard your in-progress workout and start a new one?')) return;
     if (!active || active.type !== id) setActive(makeActive(S, id));
     go('gym');
@@ -250,13 +276,16 @@ function Picker({ go }) {
   return (<>
     <div className="section-title">Your workouts · tap to start, pencil to edit</div>
     {workouts.map((w, i) => {
-      const done = rot.done.has(w.id);
-      const isNext = rot.next && rot.next.id === w.id;
+      const todays = S.sessions.find((s) => s.date === today() && s.type === w.id);
+      const doneToday = !!todays;
+      const done = doneToday || rot.done.has(w.id);
+      const isNext = rot.next && rot.next.id === w.id && !doneToday;
+      const loggedCt = todays ? todays.exercises.filter((e) => e.sets.some((s) => s.reps != null)).length : 0;
       return (
         <Reveal key={w.id} delay={i * 0.05}>
           <motion.div whileTap={{ scale: 0.985 }} className="card tight tap" style={{ display: 'flex', alignItems: 'center', gap: 12, border: isNext ? '1.5px solid var(--accent)' : undefined }} onClick={() => start(w.id)}>
             <div className="ic" style={{ background: done ? 'var(--sage-soft)' : 'var(--accent-soft)', color: done ? 'var(--sage)' : 'var(--accent-ink)', width: 42, height: 42, borderRadius: 12, display: 'grid', placeItems: 'center' }}><Icon name={done ? 'check' : 'dumbbell'} /></div>
-            <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontWeight: 800 }}>{w.name} {isNext && <Pill tone="accent">Next</Pill>}</div><div className="small muted">{w.tag} · {w.items.length} exercises</div></div>
+            <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontWeight: 800 }}>{w.name} {isNext && <Pill tone="accent">Next</Pill>} {doneToday && <Pill tone="sage">Completed today</Pill>}</div><div className="small muted">{doneToday ? `${loggedCt} exercise${loggedCt === 1 ? '' : 's'} logged · tap to view` : `${w.tag} · ${w.items.length} exercises`}</div></div>
             <button className="btn sm ghost" style={{ padding: '7px 10px' }} onClick={(e) => edit(e, w.id)}><Icon name="edit" /></button>
           </motion.div>
         </Reveal>
@@ -301,16 +330,22 @@ function ActiveWorkout({ go }) {
   const setRir = (ei, v) => setActive((a) => { a.exercises[ei].rir = v; return a; });
   const toggleEquip = (ei, key) => setActive((a) => { const e = a.exercises[ei]; e.equip = e.equip || {}; e.equip[key] = !e.equip[key]; return a; });
 
-  const cancel = () => { if (confirm('Discard this workout? Nothing will be saved.')) setActive(null); };
+  const editing = !!active.completed; // re-opened an already-finished session
+  const cancel = () => {
+    if (editing) { setActive(null); go('gym'); return; } // already saved — just close, keep it
+    if (confirm('Discard this workout? Nothing will be saved.')) setActive(null);
+  };
   const finish = () => {
     const exs = active.exercises.map((e) => ({ key: e.key, rir: e.rir, pain: e.pain, note: e.note, equip: e.equip || {},
       sets: e.sets.filter((s) => s.reps !== '' || s.weight !== '').map((s) => ({ weight: s.weight === '' ? null : +s.weight, reps: s.reps === '' ? null : +s.reps, done: !!s.done })) }));
     if (!exs.some((e) => e.sets.some((s) => s.reps)) && !confirm('No sets logged yet — save this workout anyway?')) return;
     const session = { id: active.id, date: active.date, type: active.type, name: active.name, group: grp, exercises: exs, ab: !!active.ab, cardio: active.cardio || null, warmup: !!active.warmup, cooldown: !!active.cooldown, note: active.note || '' };
     update((s) => {
-      s.sessions.push(session);
+      const idx = s.sessions.findIndex((x) => x.id === session.id);
+      const isNew = idx < 0;
+      if (isNew) s.sessions.push(session); else s.sessions[idx] = session; // update in place, don't duplicate
       exs.forEach((e) => { const mw = Math.max(0, ...e.sets.map((x) => +x.weight || 0)); if (mw) s.exState[e.key] = { weight: mw }; });
-      if (session.cardio) s.cardio.push({ id: uid(), date: session.date, ...session.cardio });
+      if (isNew && session.cardio) s.cardio.push({ id: uid(), date: session.date, ...session.cardio });
       if (session.ab) (s.daily[session.date] ||= {}).ab = true;
     });
     setActive(null); go('home'); openSheet(<FinishSummary session={session} />);
@@ -321,8 +356,8 @@ function ActiveWorkout({ go }) {
   return (<>
     <div className="card tight" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
       <div className="ic" style={{ background: 'var(--accent-soft)', color: 'var(--accent-ink)', width: 42, height: 42, borderRadius: 12, display: 'grid', placeItems: 'center' }}><Icon name="dumbbell" /></div>
-      <div style={{ flex: 1 }}><div style={{ fontWeight: 800 }}>{active.name}</div><div className="small muted">{doneCount}/{active.exercises.length} exercises logged</div></div>
-      <button className="btn sm ghost" onClick={cancel}>Cancel</button>
+      <div style={{ flex: 1 }}><div style={{ fontWeight: 800 }}>{active.name} {editing && <Pill tone="sage">Completed today</Pill>}</div><div className="small muted">{doneCount}/{active.exercises.length} exercises logged</div></div>
+      <button className="btn sm ghost" onClick={cancel}>{editing ? 'Close' : 'Cancel'}</button>
     </div>
 
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 9, margin: '-4px 2px 12px' }}>
@@ -386,7 +421,7 @@ function ActiveWorkout({ go }) {
       <div className={cx('check', active.cardio && 'on')} onClick={() => openSheet(<CardioSheet mode="active" />)}><div className="box"><Icon name="check" /></div><div className="lbl">Cardio {active.cardio && `— ${(CARDIO_TYPES.find((c) => c.id === active.cardio.type) || {}).name} ${active.cardio.duration || ''}${active.cardio.duration ? 'min' : ''}`}</div><div className="sub">StairMaster / Treadmill · tap to add</div></div>
       <div className="field" style={{ marginTop: 12 }}><label>Session notes</label><textarea value={active.note} onChange={(e) => setActive((a) => { a.note = e.target.value; return a; })} placeholder="How did it feel?" /></div>
     </div>
-    <motion.button whileTap={{ scale: 0.98 }} className="btn primary block" style={{ marginBottom: 8 }} onClick={finish}><Icon name="check" /> Finish &amp; save workout</motion.button>
+    <motion.button whileTap={{ scale: 0.98 }} className="btn primary block" style={{ marginBottom: 8 }} onClick={finish}><Icon name="check" /> {editing ? 'Save changes' : 'Finish & save workout'}</motion.button>
   </>);
 }
 
