@@ -25,7 +25,8 @@ function SheetHost() {
           onClick={(e) => { if (e.target === e.currentTarget) closeSheet(); }}>
           <motion.div className="sheet" initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 320, damping: 34 }}>
-            <div className="grab" />
+            <div className="sheet-close-row"><button type="button" className="sheet-x" onClick={closeSheet} aria-label="Close">✕</button></div>
+            <div className="grab" onClick={closeSheet} />
             {sheet}
           </motion.div>
         </motion.div>

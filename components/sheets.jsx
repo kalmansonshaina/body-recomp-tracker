@@ -632,7 +632,7 @@ export function ReviewSheet() {
       <div className="ring-wrap">
         <div className="ring"><Ring pct={sc.total / 100} size={96} stroke={10} /><div className="num"><b>{sc.total}</b><span>score</span></div></div>
         <div><span className="pill" style={{ background: 'rgba(255,255,255,.22)', color: '#fff' }}>{status.label}</span>
-          <div className="small" style={{ marginTop: 8, opacity: 0.92 }}>{status.label === 'Excellent Week' ? 'Four workouts and your classes in — beautiful consistency.' : status.label === 'Solid Week' ? 'Strong, steady week. No major regressions.' : 'Lighter week — rest counts too. Reset Monday.'}</div></div>
+          <div className="small" style={{ marginTop: 8, opacity: 0.92 }}>{status.label === 'Excellent Week' ? 'Four workouts and your classes in — beautiful consistency.' : status.label === 'Solid Week' ? 'Strong, steady week. No major regressions.' : 'Lighter week — rest counts too. Resets Sunday.'}</div></div>
       </div>
     </div>
     <div className="card">

@@ -240,7 +240,10 @@ select{-webkit-appearance:none;appearance:none;background-image:url("data:image/
 
 .sheet-bg{position:fixed;inset:0;z-index:60;background:rgba(20,30,50,.4);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);display:flex;align-items:flex-end;justify-content:center}
 .sheet{background:var(--card-solid);width:100%;max-width:560px;border-radius:30px 30px 0 0;padding:8px 18px calc(22px + var(--safe-bot));max-height:92vh;overflow-y:auto;box-shadow:var(--shadow-lg)}
-.sheet .grab{width:40px;height:5px;border-radius:99px;background:var(--line-2);margin:9px auto 16px}
+.sheet .grab{width:44px;height:5px;border-radius:99px;background:var(--line-2);margin:9px auto 16px;cursor:pointer}
+.sheet-close-row{position:sticky;top:0;height:0;z-index:6;display:flex;justify-content:flex-end;pointer-events:none}
+.sheet-x{pointer-events:auto;transform:translateY(4px);width:36px;height:36px;border-radius:50%;border:0;background:var(--surface-2);color:var(--muted);font-size:16px;font-weight:800;cursor:pointer;display:grid;place-items:center;line-height:1;box-shadow:var(--shadow)}
+.sheet-x:active{transform:translateY(4px) scale(.92)}
 .sheet h2{font-size:22px;font-weight:800;letter-spacing:-.02em;margin:0 0 4px}
 .sheet .sub{color:var(--muted);font-size:13.5px;margin:0 0 18px}
 

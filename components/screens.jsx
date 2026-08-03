@@ -224,7 +224,7 @@ function TodaySession({ go }) {
       ) : plan === 'pilates' || plan === 'yoga' ? (
         <motion.button whileTap={{ scale: 0.97 }} className="btn primary block" onClick={() => openSheet(<ActivitySheet preset={plan} />)}><Icon name="yoga" /> Log {plan === 'pilates' ? 'Pilates' : 'Yoga'} class</motion.button>
       ) : plan === 'rest' ? (
-        <div className="hint">Rest day — recovery is part of the plan. It resets Monday. 💙</div>
+        <div className="hint">Rest day — recovery is part of the plan. 💙</div>
       ) : (
         <div className="hint">Tap a workout to start logging it, Pilates/Yoga to log a class, or Rest.</div>
       )}
