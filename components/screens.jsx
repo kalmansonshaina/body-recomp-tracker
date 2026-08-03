@@ -93,12 +93,9 @@ export function Dashboard({ go }) {
   const { S, openSheet } = useStore();
   const sc = recompScore(S);
   const status = weekStatus(S, sc.bundle);
-  const rot = weekRotation(S);
   const b = sc.bundle;
   const d = S.daily[today()] || {};
-  const todaySessions = S.sessions.filter((s) => s.date === today());
-  const doneToday = todaySessions.length > 0;
-  const todayNames = [...new Set(todaySessions.map((s) => s.name))].join(', ');
+  const doneToday = S.sessions.some((s) => s.date === today());
   const pyToday = S.activities.some((a) => a.date === today() && (ACTIVITY_TYPES.find((t) => t.id === a.type) || {}).counts);
   const w = weighIns(S);
   const t = trendSummary(S);
@@ -127,27 +124,7 @@ export function Dashboard({ go }) {
         <div className="hint center" style={{ marginTop: 15 }}>A weekly total — spread these across the week, not all in one day. Focused on the habits you control, not the overnight scale.</div>
       </Reveal>
 
-      <Reveal delay={0.1} className="card">
-        <div className="card-title"><h2>{doneToday ? 'Strength' : 'Next workout'}</h2><Pill tone="accent">{rot.count}/{S.profile.strengthTarget} this week</Pill></div>
-        {doneToday && (
-          <button className="done-today" onClick={() => go('gym')}>
-            <span className="dt-check"><Icon name="check" /></span>
-            <span className="dt-main"><b>Today’s strength done</b><span>{todayNames} · tap to view or edit</span></span>
-          </button>
-        )}
-        {rot.next ? (<>
-          {doneToday && <div className="small muted" style={{ margin: '2px 2px 8px', fontWeight: 700 }}>Next in your rotation</div>}
-          <div className="metric">
-            <div style={{ width: 46, height: 46, borderRadius: 13, display: 'grid', placeItems: 'center', background: 'var(--accent-soft)', color: 'var(--accent-ink)' }}><Icon name="dumbbell" /></div>
-            <div className="lbl" style={{ marginLeft: 12 }}><div className="t" style={{ fontSize: 17 }}>{rot.next.name}</div><div className="s">{rot.next.tag} · {rot.next.items.length} exercises</div></div>
-          </div>
-          <div className="spacer" />
-          <StartButton go={go} id={rot.next.id} label={`Start ${rot.next.name}`} />
-        </>) : (<>
-          <div className="hint">{doneToday ? 'That completes your full rotation for the week. ' : ''}Extra sessions are welcome, or rest — it resets Monday.</div>
-          <div className="spacer" /><button className="btn" onClick={() => go('gym')}>Log an extra workout</button>
-        </>)}
-      </Reveal>
+      <TodaySession go={go} />
 
       <Reveal delay={0.15} className="card">
         <div className="card-title"><h2>Today</h2><span className="muted small">{fmtShort(today())}</span></div>
@@ -205,6 +182,54 @@ function StartButton({ go, id, label }) {
     go('gym');
   };
   return <motion.button whileTap={{ scale: 0.97 }} className="btn primary block" onClick={doStart}><Icon name="plus" /> {label}</motion.button>;
+}
+
+// Let her explicitly pick what today is — a specific strength workout,
+// Pilates, Yoga, or Rest — instead of the app guessing from a rotation.
+function TodaySession({ go }) {
+  const { S, active, setActive, update, openSheet } = useStore();
+  const workouts = getWorkouts(S);
+  const rot = weekRotation(S);
+  const d = S.daily[today()] || {};
+  const plan = d.plan;
+  const doneTypes = new Set(S.sessions.filter((s) => s.date === today()).map((s) => s.type));
+  const setPlan = (v) => update((s) => { (s.daily[today()] ||= {}).plan = v; });
+  const openWorkout = (id) => {
+    setPlan(id);
+    const todays = S.sessions.find((s) => s.date === today() && s.type === id);
+    if (todays) { setActive(sessionToActive(S, todays)); go('gym'); return; }
+    if (active && active.type !== id && !confirm('Discard your in-progress workout and start a new one?')) return;
+    if (!active || active.type !== id) setActive(makeActive(S, id));
+    go('gym');
+  };
+  const planWorkout = workouts.find((w) => w.id === plan);
+  const chosenName = planWorkout ? planWorkout.name : plan === 'pilates' ? 'Pilates' : plan === 'yoga' ? 'Yoga' : plan === 'rest' ? 'Rest day' : null;
+  return (
+    <Reveal delay={0.1} className="card">
+      <div className="card-title"><h2>Today’s session</h2><Pill tone="accent">{rot.count}/{S.profile.strengthTarget} this week</Pill></div>
+      <div className="small muted" style={{ marginBottom: 9 }}>Pick what you’re doing today{chosenName ? ` — ${chosenName}` : ''}</div>
+      <div className="chips">
+        {workouts.map((w) => (
+          <button key={w.id} className={cx('chip', plan === w.id && 'on', doneTypes.has(w.id) && 'sage')} onClick={() => setPlan(w.id)}>{w.name}{doneTypes.has(w.id) ? ' ✓' : ''}</button>
+        ))}
+        <button className={cx('chip', plan === 'pilates' && 'on')} onClick={() => setPlan('pilates')}>Pilates</button>
+        <button className={cx('chip', plan === 'yoga' && 'on')} onClick={() => setPlan('yoga')}>Yoga</button>
+        <button className={cx('chip', plan === 'rest' && 'on')} onClick={() => setPlan(plan === 'rest' ? undefined : 'rest')}>Rest</button>
+      </div>
+      <div className="spacer" />
+      {planWorkout ? (
+        doneTypes.has(plan)
+          ? <motion.button whileTap={{ scale: 0.97 }} className="btn block" onClick={() => openWorkout(plan)}><Icon name="check" /> {planWorkout.name} logged — tap to view or edit</motion.button>
+          : <motion.button whileTap={{ scale: 0.97 }} className="btn primary block" onClick={() => openWorkout(plan)}><Icon name="plus" /> Start {planWorkout.name}</motion.button>
+      ) : plan === 'pilates' || plan === 'yoga' ? (
+        <motion.button whileTap={{ scale: 0.97 }} className="btn primary block" onClick={() => openSheet(<ActivitySheet preset={plan} />)}><Icon name="yoga" /> Log {plan === 'pilates' ? 'Pilates' : 'Yoga'} class</motion.button>
+      ) : plan === 'rest' ? (
+        <div className="hint">Rest day — recovery is part of the plan. It resets Monday. 💙</div>
+      ) : (
+        <div className="hint">Tap a workout to start logging it, Pilates/Yoga to log a class, or Rest.</div>
+      )}
+    </Reveal>
+  );
 }
 
 function makeActive(S, type) {
