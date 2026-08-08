@@ -703,12 +703,15 @@ export function GenerateWorkoutSheet() {
     {preview && (
       <div className="card tight" style={{ marginTop: 16 }}>
         <div className="card-title" style={{ marginBottom: 8 }}><h2 style={{ fontSize: 15 }}>{preview.name}</h2><span className="muted small">{preview.exercises.length} exercises</span></div>
+        {preview.guidance?.warmup && <div className="small muted" style={{ padding: '2px 0 8px' }}>🔥 Warm-up: <b style={{ color: 'var(--ink)' }}>{preview.guidance.warmup}</b> (included when you start)</div>}
         {preview.exercises.map((ex, i) => (
           <div key={i} className="row" style={{ padding: '7px 0' }}>
             <div className="ic"><Icon name="dumbbell" /></div>
             <div className="main"><div className="t" style={{ fontSize: 14 }}>{exDef(S, ex.key).name}</div><div className="s">{ex.prescribed} × {ex.min}–{ex.max}{ex.sets[0]?.weight ? ` · start ~${ex.sets[0].weight}` : ''}</div></div>
           </div>
         ))}
+        {preview.guidance?.rest && <div className="hint" style={{ marginTop: 8 }}>{preview.guidance.rest}</div>}
+        {preview.guidance?.finisher && <div className="hint" style={{ marginTop: 6 }}>💪 <b>Finisher — {preview.guidance.finisher.name}:</b> {preview.guidance.finisher.detail}</div>}
       </div>
     )}
     <div className="btn-row" style={{ marginTop: 14 }}>
