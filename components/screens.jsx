@@ -8,6 +8,7 @@ import {
   MeasureSheet, PhotoSheet, PhotoViewSheet, SuppQuickSheet, SuppManageSheet,
   TargetsSheet, ProfileSheet, ExMenuSheet, ExHistorySheet, LibrarySheet, ReviewSheet, FinishSummary,
   ExercisePickerSheet, EditWorkoutSheet, EntrySheet, WorkoutHistorySheet, SessionDetailSheet, DayDetailSheet,
+  GenerateWorkoutSheet,
 } from './sheets';
 import { IdentityCollapsedCard } from './identity';
 import {
@@ -229,6 +230,7 @@ function TodaySession({ go }) {
       ) : (
         <div className="hint">Tap a workout to start logging it, Pilates/Yoga to log a class, or Rest.</div>
       )}
+      <button className="btn ghost sm block" style={{ marginTop: 10 }} onClick={() => openSheet(<GenerateWorkoutSheet />)}>✨ Or generate a custom workout</button>
     </Reveal>
   );
 }
@@ -275,6 +277,7 @@ function Picker({ go }) {
     openSheet(<EditWorkoutSheet workoutId={id} />);
   };
   return (<>
+    <button className="btn primary block" style={{ marginBottom: 12 }} onClick={() => openSheet(<GenerateWorkoutSheet />)}>✨ Generate a workout</button>
     <div className="section-title">Your workouts · tap to start, pencil to edit</div>
     {workouts.map((w, i) => {
       const todays = S.sessions.find((s) => s.date === today() && s.type === w.id);

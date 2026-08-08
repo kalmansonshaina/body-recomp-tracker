@@ -1,10 +1,11 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useStore } from '@/lib/store';
 import { Field, Select, Icon, Sparkline, Ring, Rec, cx } from './ui';
 import {
   today, uid, slug, round1, fmtDay, fmtShort, wt,
-  exDef, exList, getWorkouts, findItem, sessionToActive, makeActive, DEFAULT_WORKOUTS,
+  exDef, exList, getWorkouts, findItem, sessionToActive, makeActive,
+  generateWorkout, GEN_FOCUS, GEN_STYLE, GEN_MINUTES, DEFAULT_WORKOUTS,
   AB_CIRCUIT, ACTIVITY_TYPES, CARDIO_TYPES, MFIELDS,
   progression, allPerf, lastPerf, bestSet, topSetSeries,
   recompScore, weekRotation, weekStatus, trendSummary,
@@ -670,6 +671,51 @@ export function FinishSummary({ session }) {
     <div className="section-title" style={{ marginLeft: 0 }}>Next-session recommendations</div>
     {session.exercises.map((e, i) => <div key={i} style={{ marginBottom: 10 }}><div className="small" style={{ fontWeight: 700, margin: '0 2px 5px' }}>{exDef(S, e.key).name}</div><Rec prog={progression(S, findItem(S, e.key), e)} /></div>)}
     <div className="spacer" /><button className="btn primary block" onClick={closeSheet}>Done</button>
+  </>);
+}
+
+/* ---- generate a custom workout ------------------------------------------ */
+export function GenerateWorkoutSheet() {
+  const { S, active, setActive, goTab, closeSheet } = useStore();
+  const [focus, setFocus] = useState('full');
+  const [minutes, setMinutes] = useState(30);
+  const [style, setStyle] = useState('balanced');
+  const [preview, setPreview] = useState(null);
+  const [nonce, setNonce] = useState(0);
+  useEffect(() => { setPreview(generateWorkout(S, { focus, minutes, style })); /* eslint-disable-next-line */ }, [focus, minutes, style, nonce]);
+  const start = () => {
+    const w = preview || generateWorkout(S, { focus, minutes, style });
+    if (active && !confirm('Start this generated workout? Your in-progress one stays saved.')) return;
+    setActive(w); closeSheet(); goTab('gym');
+  };
+  const Chips = ({ opts, val, onPick }) => (
+    <div className="chips">{opts.map(([id, l]) => <button key={id} className={cx('chip', val === id && 'on')} onClick={() => onPick(id)}>{l}</button>)}</div>
+  );
+  return (<>
+    <h2>Generate a workout</h2><p className="sub">Tell it what you want — it builds one from your history.</p>
+    <div className="small muted" style={{ fontWeight: 800, margin: '2px 2px 6px' }}>Focus</div>
+    <Chips opts={GEN_FOCUS} val={focus} onPick={setFocus} />
+    <div className="small muted" style={{ fontWeight: 800, margin: '12px 2px 6px' }}>Time</div>
+    <div className="chips">{GEN_MINUTES.map((m) => <button key={m} className={cx('chip', minutes === m && 'on')} onClick={() => setMinutes(m)}>{m} min</button>)}</div>
+    <div className="small muted" style={{ fontWeight: 800, margin: '12px 2px 6px' }}>Style</div>
+    <Chips opts={GEN_STYLE} val={style} onPick={setStyle} />
+
+    {preview && (
+      <div className="card tight" style={{ marginTop: 16 }}>
+        <div className="card-title" style={{ marginBottom: 8 }}><h2 style={{ fontSize: 15 }}>{preview.name}</h2><span className="muted small">{preview.exercises.length} exercises</span></div>
+        {preview.exercises.map((ex, i) => (
+          <div key={i} className="row" style={{ padding: '7px 0' }}>
+            <div className="ic"><Icon name="dumbbell" /></div>
+            <div className="main"><div className="t" style={{ fontSize: 14 }}>{exDef(S, ex.key).name}</div><div className="s">{ex.prescribed} × {ex.min}–{ex.max}{ex.sets[0]?.weight ? ` · start ~${ex.sets[0].weight}` : ''}</div></div>
+          </div>
+        ))}
+      </div>
+    )}
+    <div className="btn-row" style={{ marginTop: 14 }}>
+      <button className="btn" onClick={() => setNonce((n) => n + 1)}><Icon name="plus" /> Shuffle</button>
+      <button className="btn primary" onClick={start}><Icon name="check" /> Start workout</button>
+    </div>
+    <div className="spacer" /><button className="btn ghost block" onClick={closeSheet}>Close</button>
   </>);
 }
 
