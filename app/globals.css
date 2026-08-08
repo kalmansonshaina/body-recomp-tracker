@@ -302,6 +302,9 @@ ul.hint{padding-left:18px;line-height:1.9;margin:0}
 .hero-foot{display:flex;align-items:center;justify-content:space-between;margin-top:24px}
 .hero-dots{width:52px;height:52px;border-radius:50%;border:0;background:rgba(255,255,255,.92);
   color:#33415a;font-size:22px;font-weight:800;box-shadow:var(--shadow);cursor:pointer;line-height:1}
+.hero-gen{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.22);color:#fff;border:0;
+  border-radius:999px;padding:15px 22px;font-size:16px;font-weight:800;cursor:pointer;
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);text-shadow:0 1px 8px rgba(0,40,90,.2);box-shadow:0 2px 14px rgba(0,45,100,.14)}
 .hero-start{display:inline-flex;align-items:center;gap:11px;background:#fff;color:#16202e;border:0;
   border-radius:999px;padding:15px 22px 15px 28px;font-size:18px;font-weight:800;box-shadow:var(--shadow-lg);cursor:pointer}
 .hero-start .arw{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#e9eef7;color:#16202e}

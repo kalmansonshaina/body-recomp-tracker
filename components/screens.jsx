@@ -43,16 +43,10 @@ function InstallHint() {
 }
 
 export function Home({ go }) {
-  const { S, active, setActive } = useStore();
+  const { S, openSheet } = useStore();
   const rot = weekRotation(S);
   const sc = recompScore(S);
   const first = S.profile.name ? S.profile.name.split(' ')[0].toLowerCase() : null;
-  const startNext = () => {
-    const id = rot.next?.id;
-    if (!id) { go('gym'); return; }
-    if (!active || active.type !== id) setActive(makeActive(S, id));
-    go('gym');
-  };
   const leadDesc = rot.next ? `${rot.next.name.toLowerCase()} — ${rot.next.tag.toLowerCase()}` : 'rotation complete — extra session';
   const leadMeta = rot.next ? `${rot.next.items.length} exercises · warm-up included` : `recomp score ${sc.total}/100 this week`;
   const cats = [
@@ -84,8 +78,8 @@ export function Home({ go }) {
         </div>
       </div>
       <div className="hero-foot">
-        <button className="hero-dots" onClick={() => go('more')}>…</button>
-        <motion.button whileTap={{ scale: 0.96 }} className="hero-start" onClick={startNext}>start <span className="arw"><Icon name="arrow" /></span></motion.button>
+        <motion.button whileTap={{ scale: 0.96 }} className="hero-gen" onClick={() => openSheet(<GenerateWorkoutSheet />)}>✨ generate</motion.button>
+        <motion.button whileTap={{ scale: 0.96 }} className="hero-start" onClick={() => go('gym')}>workouts <span className="arw"><Icon name="arrow" /></span></motion.button>
       </div>
     </div>
   );
