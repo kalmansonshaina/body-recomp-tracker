@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { StoreProvider, useStore } from '@/lib/store';
 import { Icon, cx } from './ui';
-import { Home, Dashboard, Workout, Log, Progress, More } from './screens';
+import { Home, Dashboard, Workout, Log, Progress, More, Diary } from './screens';
 import { IdentityPage, IdentityReveal } from './identity';
 
 const TABS = [
@@ -14,7 +14,7 @@ const TABS = [
   { id: 'progress', label: 'Progress', icon: 'trend' },
   { id: 'more', label: 'More', icon: 'more' },
 ];
-const SCREENS = { home: Home, dashboard: Dashboard, gym: Workout, movement: Log, identity: IdentityPage, progress: Progress, more: More };
+const SCREENS = { home: Home, dashboard: Dashboard, gym: Workout, movement: Log, identity: IdentityPage, diary: Diary, progress: Progress, more: More };
 
 function SheetHost() {
   const { sheet, closeSheet } = useStore();

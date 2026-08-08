@@ -7,12 +7,12 @@ import {
   WeightSheet, StartWeightSheet, WeighInEditSheet, StepsSheet, CheckinSheet, ActivitySheet, CardioSheet, AbsSheet,
   MeasureSheet, PhotoSheet, PhotoViewSheet, SuppQuickSheet, SuppManageSheet,
   TargetsSheet, ProfileSheet, ExMenuSheet, ExHistorySheet, LibrarySheet, ReviewSheet, FinishSummary,
-  ExercisePickerSheet, EditWorkoutSheet, EntrySheet, WorkoutHistorySheet, SessionDetailSheet,
+  ExercisePickerSheet, EditWorkoutSheet, EntrySheet, WorkoutHistorySheet, SessionDetailSheet, DayDetailSheet,
 } from './sheets';
 import { IdentityCollapsedCard } from './identity';
 import {
   today, uid, round1, fmtDay, fmtShort, wt, defaultState,
-  exDef, getWorkouts, workoutById, findItem, sessionToActive, WARMUPS, COOLDOWNS, DEFAULT_WORKOUTS,
+  exDef, getWorkouts, workoutById, findItem, sessionToActive, makeActive, WARMUPS, COOLDOWNS, DEFAULT_WORKOUTS,
   ACTIVITY_TYPES, CARDIO_TYPES, MFIELDS,
   weekBundle, weekRotation, weekStatus, weekDates, startOfWeek,
   recompScore, trendSummary, weighIns, rollingAvg, lastPerf, bestSet, allPerf, progression,
@@ -58,6 +58,7 @@ export function Home({ go }) {
     { id: 'dashboard', label: 'dashboard' },
     { id: 'identity', label: 'identity' },
     { id: 'movement', label: 'movement' },
+    { id: 'diary', label: 'diary' },
     { id: 'progress', label: 'progress' },
     { id: 'more', label: 'more' },
   ];
@@ -232,19 +233,6 @@ function TodaySession({ go }) {
   );
 }
 
-function makeActive(S, type) {
-  const w = workoutById(S, type);
-  return {
-    id: uid(), date: today(), type, name: w.name, group: w.group || 'lower',
-    exercises: w.items.map((it) => {
-      const last = lastPerf(S, it.key);
-      const prevW = last ? Math.max(...last.ex.sets.filter((s) => s.reps).map((s) => +s.weight || 0)) : (S.exState[it.key]?.weight || '');
-      return { key: it.key, min: it.min, max: it.max, perSide: !!it.perSide, prescribed: it.sets || 3,
-        sets: Array.from({ length: it.sets || 3 }, () => ({ weight: prevW || '', reps: '' })), rir: 2, pain: 'none', equip: {}, note: '' };
-    }),
-    cardio: null, ab: false, warmup: false, cooldown: false, note: '',
-  };
-}
 function addExerciseToActive(S, setActive, key) {
   setActive((a) => {
     const last = lastPerf(S, key);
@@ -649,9 +637,53 @@ function ProgPhotos() {
 }
 
 /* ========================================================================= */
+/* DIARY — browse & edit any day                                             */
+/* ========================================================================= */
+export function Diary() {
+  const { S, openSheet } = useStore();
+  const [jump, setJump] = useState(today());
+  const dates = new Set();
+  S.sessions.forEach((s) => dates.add(s.date));
+  S.cardio.forEach((c) => dates.add(c.date));
+  S.activities.forEach((a) => dates.add(a.date));
+  Object.keys(S.daily).forEach((dt) => { const d = S.daily[dt]; if (d && (d.weight != null && d.weight !== '' || d.steps || d.ab || d.note || d.energy || d.sleep)) dates.add(dt); });
+  Object.keys(S.suppLog).forEach((dt) => { if (Object.keys(S.suppLog[dt] || {}).length) dates.add(dt); });
+  const list = [...dates].filter(Boolean).sort((a, b) => (a < b ? 1 : -1));
+  const summary = (dt) => {
+    const parts = [];
+    const ss = S.sessions.filter((s) => s.date === dt); if (ss.length) parts.push([...new Set(ss.map((s) => s.name))].join(', '));
+    const cc = S.cardio.filter((c) => c.date === dt); if (cc.length) parts.push(`${cc.length} cardio`);
+    const aa = S.activities.filter((a) => a.date === dt); if (aa.length) parts.push(`${aa.length} class${aa.length > 1 ? 'es' : ''}`);
+    const dd = S.daily[dt] || {}; if (dd.weight != null && dd.weight !== '') parts.push(wt(S, dd.weight)); if (dd.steps) parts.push(`${(+dd.steps).toLocaleString()} steps`); if (dd.ab) parts.push('abs');
+    return parts.join(' · ') || 'nothing logged';
+  };
+  return (<>
+    <AppBar title="Diary" sub="Browse & edit any day" right={fmtDay(today())} />
+    <main className="screen">
+      <Reveal className="card">
+        <div className="card-title"><h2>Jump to a day</h2></div>
+        <div className="btn-row" style={{ alignItems: 'stretch' }}>
+          <input className="input" type="date" value={jump} max={today()} onChange={(e) => setJump(e.target.value)} style={{ flex: 1 }} />
+          <button className="btn" onClick={() => openSheet(<DayDetailSheet date={jump} />)}>Open</button>
+        </div>
+        <div className="hint" style={{ marginTop: 8 }}>Pick any past date to view, add or fix what you logged — steps, weight, a workout, cardio, anything.</div>
+      </Reveal>
+      <Reveal delay={0.05} className="card">
+        <div className="card-title"><h2>Recent days</h2></div>
+        <div className="row tap" onClick={() => openSheet(<DayDetailSheet date={today()} />)}><div className="ic"><Icon name="star" /></div><div className="main"><div className="t">Today</div><div className="s">{summary(today())}</div></div><div className="end muted">›</div></div>
+        {list.filter((dt) => dt !== today()).slice(0, 90).map((dt) => (
+          <div key={dt} className="row tap" onClick={() => openSheet(<DayDetailSheet date={dt} />)}><div className="ic"><Icon name="clip" /></div><div className="main"><div className="t">{fmtDay(dt)}</div><div className="s">{summary(dt)}</div></div><div className="end muted">›</div></div>
+        ))}
+        {!list.filter((dt) => dt !== today()).length && <div className="empty small">Only today so far — past days you log will appear here.</div>}
+      </Reveal>
+    </main>
+  </>);
+}
+
+/* ========================================================================= */
 /* MORE                                                                      */
 /* ========================================================================= */
-export function More() {
+export function More({ go }) {
   const { S, update, openSheet, photos, setS, savePhotos, setActive, toast } = useStore();
   const p = S.profile;
   const setUnit = (field, val) => update((s) => { s.profile[field] = val; });
@@ -680,6 +712,7 @@ export function More() {
     <main className="screen">
       <Reveal className="card">
         <div className="card-title"><h2>Review &amp; reference</h2></div>
+        <Row icon="clip" title="Diary — browse by day" sub="See & edit any past day" onClick={() => go('diary')} />
         <Row icon="star" title="Weekly review" sub="This week's summary & score" onClick={() => openSheet(<ReviewSheet />)} />
         <Row icon="book" title="Exercise library" sub="Form cues, muscles, substitutions" onClick={() => openSheet(<LibrarySheet />)} />
       </Reveal>

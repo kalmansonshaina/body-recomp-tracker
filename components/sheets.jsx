@@ -4,7 +4,7 @@ import { useStore } from '@/lib/store';
 import { Field, Select, Icon, Sparkline, Ring, Rec, cx } from './ui';
 import {
   today, uid, slug, round1, fmtDay, fmtShort, wt,
-  exDef, exList, getWorkouts, findItem, sessionToActive, DEFAULT_WORKOUTS,
+  exDef, exList, getWorkouts, findItem, sessionToActive, makeActive, DEFAULT_WORKOUTS,
   AB_CIRCUIT, ACTIVITY_TYPES, CARDIO_TYPES, MFIELDS,
   progression, allPerf, lastPerf, bestSet, topSetSeries,
   recompScore, weekRotation, weekStatus, trendSummary,
@@ -52,14 +52,15 @@ export function WeighInEditSheet({ date }) {
     <div className="spacer" /><button className="btn ghost block" onClick={closeSheet}>Close</button>
   </>);
 }
-export function StepsSheet() {
+export function StepsSheet({ date = today() }) {
   const { S, update, closeSheet, toast } = useStore();
-  const [v, setV] = useState(S.daily[today()]?.steps ?? '');
-  const save = () => { update((s) => { (s.daily[today()] ||= {}).steps = numOr(v); }); toast('Steps logged'); closeSheet(); };
+  const [v, setV] = useState(S.daily[date]?.steps ?? '');
+  const save = () => { update((s) => { (s.daily[date] ||= {}).steps = numOr(v); }); toast('Steps logged'); closeSheet(); };
   return (<>
-    <h2>Log steps</h2><p className="sub">Enter today&apos;s step count from your phone or watch.</p>
+    <h2>Log steps</h2><p className="sub">{date === today() ? 'Enter today’s step count from your phone or watch.' : fmtDay(date)}</p>
     <Field label="Steps" hint={`Target ${S.profile.stepTarget.toLocaleString()}/day — the weekly average is what matters.`}><input className="input" type="number" inputMode="numeric" autoFocus value={v} onChange={(e) => setV(e.target.value)} placeholder="e.g. 10250" /></Field>
     <button className="btn primary block" onClick={save}>Save</button>
+    <div className="spacer" /><button className="btn ghost block" onClick={closeSheet}>Close</button>
   </>);
 }
 export function CheckinSheet() {
@@ -82,11 +83,11 @@ export function CheckinSheet() {
     <button className="btn primary block" onClick={save}>Save check-in</button>
   </>);
 }
-export function ActivitySheet({ preset, edit }) {
+export function ActivitySheet({ preset, edit, date }) {
   const { update, closeSheet, toast } = useStore();
   const [f, setF] = useState(edit
     ? { type: edit.type || 'pilates', dur: edit.duration ?? '', int: edit.intensity || 'Moderate', date: edit.date || today(), note: edit.note || '' }
-    : { type: preset || 'pilates', dur: '', int: 'Moderate', date: today(), note: '' });
+    : { type: preset || 'pilates', dur: '', int: 'Moderate', date: date || today(), note: '' });
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   const save = () => {
     if (edit) { update((s) => { const i = s.activities.findIndex((x) => x.id === edit.id); if (i >= 0) s.activities[i] = { id: edit.id, date: f.date || edit.date, type: f.type, duration: numOr(f.dur), intensity: f.int, note: f.note }; }); toast('Class updated'); }
@@ -111,12 +112,12 @@ function buildCardio(f) {
   o.type = o.type || 'stairmaster';
   return o;
 }
-export function CardioSheet({ mode, preset, edit }) {
+export function CardioSheet({ mode, preset, edit, date }) {
   const active = mode === 'active';
   const { S, update, setActive, openSheet, closeSheet, toast } = useStore();
   const [f, setF] = useState(edit
     ? { type: edit.type || 'stairmaster', dur: edit.duration ?? '', eff: edit.effort || '', level: edit.level ?? '', speed: edit.speed ?? '', incline: edit.incline ?? '', dist: edit.distance || '', note: edit.note || '', date: edit.date || today() }
-    : { type: preset || 'stairmaster', dur: '', eff: 'Moderate', level: '', speed: '', incline: '', dist: '', note: '', date: today() });
+    : { type: preset || 'stairmaster', dur: '', eff: 'Moderate', level: '', speed: '', incline: '', dist: '', note: '', date: date || today() });
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   // cardio already logged today (only relevant when logging a fresh standalone entry)
   const todays = (!active && !edit && S) ? S.cardio.filter((c) => c.date === today()) : [];
@@ -256,15 +257,19 @@ export function SessionDetailSheet({ id }) {
   </>);
 }
 
-export function AbsSheet() {
+export function AbsSheet({ date = today() }) {
   const { S, update, closeSheet, toast } = useStore();
-  const [rounds, setRounds] = useState(S.daily[today()]?.abRounds || '2');
-  const save = () => { update((s) => { const d = (s.daily[today()] ||= {}); d.ab = true; d.abRounds = rounds; }); toast('Ab circuit logged'); closeSheet(); };
+  const [rounds, setRounds] = useState(S.daily[date]?.abRounds || '2');
+  const already = !!S.daily[date]?.ab;
+  const save = () => { update((s) => { const d = (s.daily[date] ||= {}); d.ab = true; d.abRounds = rounds; }); toast('Ab circuit logged'); closeSheet(); };
+  const del = () => { update((s) => { const d = s.daily[date]; if (d) { d.ab = false; delete d.abRounds; } }); toast('Ab circuit removed'); closeSheet(); };
   return (<>
-    <h2>Ab circuit</h2><p className="sub">Optional — 2–3 rounds, a couple of times a week.</p>
+    <h2>Ab circuit</h2><p className="sub">{date === today() ? 'Optional — 2–3 rounds, a couple of times a week.' : fmtDay(date)}</p>
     <div className="card tight">{AB_CIRCUIT.map((a) => <div key={a.name} className="row"><div className="main"><div className="t">{a.name}</div><div className="s">{a.target}</div></div></div>)}</div>
     <Field label="Rounds completed"><Select value={rounds} onChange={(e) => setRounds(e.target.value)} options={['1', '2', '3', '4']} /></Field>
     <button className="btn primary block" onClick={save}>Mark complete</button>
+    {already && <><div className="spacer" /><button className="btn ghost danger block" onClick={del}>Remove ab circuit</button></>}
+    <div className="spacer" /><button className="btn ghost block" onClick={closeSheet}>Close</button>
   </>);
 }
 export function MeasureSheet() {
@@ -336,16 +341,16 @@ function suppByTime(list) {
   list.filter((s) => s.active).sort((a, b) => (order[a.time] - order[b.time]) || (a.order - b.order)).forEach((s) => { (groups[s.time || 'Anytime'] ||= []).push(s); });
   return groups;
 }
-export function SuppQuickSheet() {
+export function SuppQuickSheet({ date = today() }) {
   const { S, update, closeSheet } = useStore();
   const groups = suppByTime(S.supplements);
-  const log = S.suppLog[today()] || {};
+  const log = S.suppLog[date] || {};
   const active = S.supplements.filter((s) => s.active);
-  const toggle = (id) => update((s) => { const d = (s.suppLog[today()] ||= {}); if (d[id]) delete d[id]; else d[id] = true; });
-  const all = () => update((s) => { const d = (s.suppLog[today()] = {}); s.supplements.filter((x) => x.active).forEach((x) => (d[x.id] = true)); });
-  const clear = () => update((s) => { s.suppLog[today()] = {}; });
+  const toggle = (id) => update((s) => { const d = (s.suppLog[date] ||= {}); if (d[id]) delete d[id]; else d[id] = true; });
+  const all = () => update((s) => { const d = (s.suppLog[date] = {}); s.supplements.filter((x) => x.active).forEach((x) => (d[x.id] = true)); });
+  const clear = () => update((s) => { s.suppLog[date] = {}; });
   return (<>
-    <h2>Supplements</h2><p className="sub">{fmtDay(today())}</p>
+    <h2>Supplements</h2><p className="sub">{fmtDay(date)}</p>
     {active.length ? Object.keys(groups).map((tm) => (
       <div key={tm}><div className="small muted" style={{ margin: '6px 2px 2px', fontWeight: 800 }}>{tm}</div>
         {groups[tm].map((s) => <div key={s.id} className={cx('check', log[s.id] && 'on')} onClick={() => toggle(s.id)}><div className="box"><Icon name="check" /></div><div className="lbl">{s.name}{s.dose && <span className="sub"> {s.dose}</span>}</div></div>)}
@@ -665,5 +670,61 @@ export function FinishSummary({ session }) {
     <div className="section-title" style={{ marginLeft: 0 }}>Next-session recommendations</div>
     {session.exercises.map((e, i) => <div key={i} style={{ marginBottom: 10 }}><div className="small" style={{ fontWeight: 700, margin: '0 2px 5px' }}>{exDef(S, e.key).name}</div><Rec prog={progression(S, findItem(S, e.key), e)} /></div>)}
     <div className="spacer" /><button className="btn primary block" onClick={closeSheet}>Done</button>
+  </>);
+}
+
+/* ---- day detail: view / add / edit everything for one date -------------- */
+export function LogWorkoutForDateSheet({ date }) {
+  const { S, active, setActive, goTab, closeSheet } = useStore();
+  const workouts = getWorkouts(S);
+  const start = (id) => {
+    if (active && active.date !== date && !confirm('Start this workout? Your in-progress one stays saved.')) return;
+    setActive(makeActive(S, id, date)); closeSheet(); goTab('gym');
+  };
+  return (<>
+    <h2>Log a workout</h2><p className="sub">{fmtDay(date)} — pick which workout you did.</p>
+    {workouts.map((w) => (
+      <div key={w.id} className="row tap" onClick={() => start(w.id)}>
+        <div className="ic"><Icon name="dumbbell" /></div>
+        <div className="main"><div className="t">{w.name}</div><div className="s">{w.tag} · {w.items.length} exercises</div></div>
+        <div className="end muted">›</div>
+      </div>
+    ))}
+    <div className="spacer" /><button className="btn ghost block" onClick={closeSheet}>Close</button>
+  </>);
+}
+export function DayDetailSheet({ date }) {
+  const { S, openSheet, closeSheet } = useStore();
+  const sessions = S.sessions.filter((s) => s.date === date);
+  const cardio = S.cardio.filter((c) => c.date === date);
+  const acts = S.activities.filter((a) => a.date === date);
+  const d = S.daily[date] || {};
+  const activeSupps = S.supplements.filter((s) => s.active);
+  const suppTaken = activeSupps.filter((s) => (S.suppLog[date] || {})[s.id]).length;
+  const Row = ({ icon, t, s, onClick, right }) => (
+    <div className="row tap" onClick={onClick}><div className="ic"><Icon name={icon} /></div><div className="main"><div className="t">{t}</div>{s && <div className="s">{s}</div>}</div><div className="end muted">{right || '›'}</div></div>
+  );
+  return (<>
+    <h2>{fmtDay(date)}</h2><p className="sub">See, add or edit anything logged this day.</p>
+
+    <div className="section-title" style={{ marginLeft: 0 }}>Strength</div>
+    {sessions.map((s) => <Row key={s.id} icon="dumbbell" t={s.name} s={`${(s.exercises || []).filter((e) => (e.sets || []).some((x) => x.reps != null)).length} exercises logged`} onClick={() => openSheet(<SessionDetailSheet id={s.id} />)} />)}
+    <button className="btn sm ghost block" style={{ marginTop: sessions.length ? 6 : 0 }} onClick={() => openSheet(<LogWorkoutForDateSheet date={date} />)}><Icon name="plus" /> Log a workout for this day</button>
+
+    <div className="section-title" style={{ marginLeft: 0, marginTop: 15 }}>Cardio</div>
+    {cardio.map((c) => <Row key={c.id} icon={c.type === 'stairmaster' ? 'stairs' : 'walk'} t={(CARDIO_TYPES.find((x) => x.id === c.type) || {}).name} s={c.duration ? `${c.duration} min` : ''} onClick={() => openSheet(<EntrySheet entry={{ ...c, kind: 'cardio' }} />)} />)}
+    <button className="btn sm ghost block" style={{ marginTop: cardio.length ? 6 : 0 }} onClick={() => openSheet(<CardioSheet mode="standalone" date={date} />)}><Icon name="plus" /> Add cardio</button>
+
+    <div className="section-title" style={{ marginLeft: 0, marginTop: 15 }}>Pilates / Yoga</div>
+    {acts.map((a) => <Row key={a.id} icon="yoga" t={(ACTIVITY_TYPES.find((x) => x.id === a.type) || {}).name} s={a.duration ? `${a.duration} min` : ''} onClick={() => openSheet(<EntrySheet entry={{ ...a, kind: 'act' }} />)} />)}
+    <button className="btn sm ghost block" style={{ marginTop: acts.length ? 6 : 0 }} onClick={() => openSheet(<ActivitySheet date={date} />)}><Icon name="plus" /> Add class</button>
+
+    <div className="section-title" style={{ marginLeft: 0, marginTop: 15 }}>Daily</div>
+    <Row icon="scale" t="Weight" s={d.weight != null && d.weight !== '' ? wt(S, d.weight) : 'not logged'} onClick={() => openSheet(<WeighInEditSheet date={date} />)} right={d.weight != null && d.weight !== '' ? 'edit' : 'add'} />
+    <Row icon="walk" t="Steps" s={d.steps != null && d.steps !== '' ? (+d.steps).toLocaleString() : 'not logged'} onClick={() => openSheet(<StepsSheet date={date} />)} right={d.steps ? 'edit' : 'add'} />
+    <Row icon="flame" t="Ab circuit" s={d.ab ? `done${d.abRounds ? ` · ${d.abRounds} rounds` : ''}` : 'not logged'} onClick={() => openSheet(<AbsSheet date={date} />)} right={d.ab ? 'edit' : 'add'} />
+    <Row icon="heart" t="Supplements" s={activeSupps.length ? `${suppTaken}/${activeSupps.length} taken` : 'none set'} onClick={() => openSheet(<SuppQuickSheet date={date} />)} right="edit" />
+
+    <div className="spacer" /><button className="btn ghost block" onClick={closeSheet}>Close</button>
   </>);
 }
