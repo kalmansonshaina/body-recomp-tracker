@@ -497,7 +497,7 @@ export function EditWorkoutSheet({ workoutId }) {
   return (<>
     <h2>Edit workout</h2><p className="sub">Reorder, swap or add — logged history stays with each exercise.</p>
     <Field label="Name"><input className="input" value={w.name} onChange={(e) => mut((wk) => { wk.name = e.target.value; })} /></Field>
-    <Field label="Type — sets its warm-up &amp; cooldown"><Select value={w.group || 'lower'} onChange={(e) => mut((wk) => { wk.group = e.target.value; })} options={[['lower', 'Lower body'], ['upper', 'Upper body']]} /></Field>
+    <Field label="Type — sets its warm-up &amp; cooldown"><Select value={w.group || 'lower'} onChange={(e) => mut((wk) => { wk.group = e.target.value; })} options={[['lower', 'Lower body'], ['upper', 'Upper body'], ['full', 'Full body'], ['core', 'Core / Abs'], ['cardio', 'Cardio']]} /></Field>
     <div className="section-title" style={{ marginLeft: 0 }}>Exercises</div>
     {w.items.map((it, i) => (
       <div key={i} className="card tight" style={{ marginBottom: 10 }}>
